@@ -1,13 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using TaskManagement.Auth.Data;
-using TaskManagement.Auth.DTOs;
-using TaskManagement.Auth.Models;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.IdentityModel.Tokens;
+using TaskManagement.Auth.Data;
+using TaskManagement.Auth.DTOs;
+using TaskManagement.Auth.Models;
 
 namespace TaskManagement.Auth.Controllers;
 
@@ -187,5 +188,116 @@ public class AuthController : ControllerBase
             role = user.Role,
             createdAt = user.CreatedAt
         });
+    }
+
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        var user = await _context.Users.FindAsync(userId);
+
+        if (user is null)
+            return NotFound(new { message = "User not found." });
+
+        var emailExists = await _context.Users
+            .AnyAsync(u => u.Email == request.Email && u.Id != userId);
+
+        if (emailExists)
+            return Conflict(new { message = "Email is already in use." });
+
+        user.Name = request.Name;
+        user.Email = request.Email;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            id = user.Id,
+            name = user.Name,
+            email = user.Email,
+            role = user.Role
+        });
+    }
+
+    [HttpPut("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        var user = await _context.Users.FindAsync(userId);
+
+        if (user is null)
+            return NotFound(new { message = "User not found." });
+
+        var passwordHasher = new PasswordHasher<User>();
+
+        var passwordResult = passwordHasher.VerifyHashedPassword(
+            user,
+            user.PasswordHash,
+            request.CurrentPassword);
+
+        if (passwordResult == PasswordVerificationResult.Failed)
+            return BadRequest(new { message = "Current password is incorrect." });
+
+        if (request.NewPassword != request.ConfirmNewPassword)
+            return BadRequest(new { message = "New passwords do not match." });
+
+        user.PasswordHash = passwordHasher.HashPassword(
+            user,
+            request.NewPassword);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Password changed successfully."
+        });
+    }
+
+    [HttpGet("users/{userId:guid}")]
+    [Authorize]
+    public async Task<IActionResult> GetUserById(Guid userId)
+    {
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user is null)
+            return NotFound(new { message = "User not found." });
+
+        return Ok(new
+        {
+            id = user.Id,
+            name = user.Name,
+            email = user.Email,
+            role = user.Role
+        });
+    }
+
+    [HttpGet("users")]
+    [Authorize]
+    public async Task<IActionResult> GetUsers()
+    {
+        var users = await _context.Users
+            .AsNoTracking()
+            .Select(user => new
+            {
+                id = user.Id,
+                name = user.Name,
+                email = user.Email,
+                role = user.Role
+            })
+            .ToListAsync();
+
+        return Ok(users);
     }
 }
