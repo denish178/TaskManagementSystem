@@ -3,11 +3,13 @@ using TaskManagement.File.Data;
 using TaskManagement.File.Interfaces;
 using TaskManagement.File.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TaskManagement.File.Controllers;
 
 [ApiController]
 [Route("api/files")]
+[Authorize]
 public class FilesController : ControllerBase
 {
     private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
