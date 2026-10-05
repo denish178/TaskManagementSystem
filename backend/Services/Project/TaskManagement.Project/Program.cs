@@ -1,41 +1,93 @@
+using Microsoft.EntityFrameworkCore;
+using TaskManagement.Project.Data;
+using System.Text.Json.Serialization;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// ----------------------------------------------------
+// Controllers + JSON settings
+// ----------------------------------------------------
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Prevent circular reference errors when
+        // Project -> Team -> Projects -> Project...
+        // relationships are serialized.
+        options.JsonSerializerOptions.ReferenceHandler =
+            ReferenceHandler.IgnoreCycles;
+    });
+
+// ----------------------------------------------------
+// Swagger
+// ----------------------------------------------------
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// ----------------------------------------------------
+// Azure SQL
+// ----------------------------------------------------
+
+var connectionString =
+    builder.Configuration.GetConnectionString("AzureSql");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Azure SQL connection string is not configured.");
+}
+
+builder.Services.AddDbContext<ProjectDbContext>(options =>
+{
+    options.UseSqlServer(
+        connectionString,
+        sqlOptions =>
+        {
+            sqlOptions.MigrationsHistoryTable(
+                "__ProjectMigrationsHistory");
+        });
+});
+
+// ----------------------------------------------------
+// CORS
+// ----------------------------------------------------
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendPolicy", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+// ----------------------------------------------------
+// Build application
+// ----------------------------------------------------
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ----------------------------------------------------
+// Swagger
+// ----------------------------------------------------
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+// ----------------------------------------------------
+// Middleware
+// ----------------------------------------------------
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseCors("FrontendPolicy");
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.MapControllers();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
