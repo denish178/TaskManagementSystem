@@ -1,41 +1,88 @@
+using Microsoft.EntityFrameworkCore;
+using TaskManagement.Task.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// =====================================================
+// CONTROLLERS
+// =====================================================
+
+builder.Services.AddControllers();
+
+// =====================================================
+// SWAGGER
+// =====================================================
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// =====================================================
+// AZURE SQL
+// =====================================================
+
+var connectionString =
+    builder.Configuration.GetConnectionString("AzureSql");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Azure SQL connection string is not configured.");
+}
+
+builder.Services.AddDbContext<TaskDbContext>(options =>
+{
+    options.UseSqlServer(
+        connectionString,
+        sqlOptions =>
+        {
+            sqlOptions.MigrationsHistoryTable(
+                "__TaskMigrationsHistory");
+        });
+});
+
+// =====================================================
+// CORS
+// =====================================================
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendPolicy", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+// =====================================================
+// BUILD APPLICATION
+// =====================================================
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// =====================================================
+// SWAGGER
+// =====================================================
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+// =====================================================
+// MIDDLEWARE
+// =====================================================
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseCors("FrontendPolicy");
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+// =====================================================
+// CONTROLLERS
+// =====================================================
+
+app.MapControllers();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
