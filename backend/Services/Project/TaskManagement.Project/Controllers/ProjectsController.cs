@@ -4,9 +4,12 @@ using TaskManagement.Project.Data;
 using TaskManagement.Project.DTOs;
 using TaskManagement.Project.Models;
 using ProjectModel = TaskManagement.Project.Models.Project;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace TaskManagement.Project.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/projects")]
 public class ProjectsController : ControllerBase
@@ -55,7 +58,10 @@ public class ProjectsController : ControllerBase
             TeamId = request.TeamId,
             Name = request.Name.Trim(),
             Description = request.Description,
-            CreatedBy = request.CreatedBy,
+            CreatedBy = Guid.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? throw new UnauthorizedAccessException("User ID claim not found.")),
             CreatedAt = DateTime.UtcNow
         };
 
