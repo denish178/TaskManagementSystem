@@ -19,50 +19,104 @@ public class DashboardController : ControllerBase
     [HttpGet("project/{projectId:guid}")]
     public async Task<IActionResult> GetProjectDashboard(Guid projectId)
     {
-        var dashboard =
-            await _dashboardService.GetProjectDashboardAsync(projectId);
-
-        if (dashboard == null)
+        try
         {
-            return NotFound("Project dashboard data not found.");
-        }
+            var dashboard =
+                await _dashboardService.GetProjectDashboardAsync(projectId);
 
-        return Ok(dashboard);
+            if (dashboard == null)
+            {
+                return NotFound(new
+                {
+                    message = "Project dashboard data not found."
+                });
+            }
+
+            return Ok(dashboard);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(
+                StatusCodes.Status502BadGateway,
+                new
+                {
+                    message = "Task Service is unavailable."
+                });
+        }
     }
 
     [HttpGet("project/{projectId:guid}/status-counts")]
     public async Task<IActionResult> GetProjectStatusCounts(Guid projectId)
     {
-        var statusCounts =
-            await _dashboardService.GetProjectStatusCountsAsync(projectId);
+        try
+        {
+            var statusCounts =
+                await _dashboardService.GetProjectStatusCountsAsync(projectId);
 
-        return Ok(statusCounts);
+            return Ok(statusCounts);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(
+                StatusCodes.Status502BadGateway,
+                new
+                {
+                    message = "Task Service is unavailable."
+                });
+        }
     }
 
     [HttpGet("project/{projectId:guid}/overdue")]
     public async Task<IActionResult> GetOverdueTasks(Guid projectId)
     {
-        var overdueTasks =
-            await _dashboardService.GetOverdueTasksAsync(projectId);
-
-        return Ok(new
+        try
         {
-            projectId,
-            overdueTasks
-        });
+            var overdueTasks =
+                await _dashboardService.GetOverdueTasksAsync(projectId);
+
+            return Ok(new
+            {
+                projectId,
+                overdueTasks
+            });
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(
+                StatusCodes.Status502BadGateway,
+                new
+                {
+                    message = "Task Service is unavailable."
+                });
+        }
     }
 
     [HttpGet("sprint/{sprintId:guid}/progress")]
     public async Task<IActionResult> GetSprintProgress(Guid sprintId)
     {
-        var progress =
-            await _dashboardService.GetSprintProgressAsync(sprintId);
-
-        if (progress == null)
+        try
         {
-            return NotFound("Sprint progress data not found.");
-        }
+            var progress =
+                await _dashboardService.GetSprintProgressAsync(sprintId);
 
-        return Ok(progress);
+            if (progress == null)
+            {
+                return NotFound(new
+                {
+                    message = "Sprint progress data not found."
+                });
+            }
+
+            return Ok(progress);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(
+                StatusCodes.Status502BadGateway,
+                new
+                {
+                    message = "Task Service is unavailable."
+                });
+        }
     }
 }
