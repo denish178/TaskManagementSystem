@@ -2,29 +2,37 @@
   <Folder Name="/Gateway/">
     <Project Path="Gateway/TaskManagement.Gateway/TaskManagement.Gateway.csproj" />
   </Folder>
+
   <Folder Name="/Services/" />
+
   <Folder Name="/Services/Auth/">
     <Project Path="Services/Auth/TaskManagement.Auth/TaskManagement.Auth.csproj" />
   </Folder>
+
   <Folder Name="/Services/Comment/">
     <Project Path="Services/Comment/TaskManagement.Comment/TaskManagement.Comment.csproj" />
   </Folder>
+
   <Folder Name="/Services/Dashboard/">
     <Project Path="Services/Dashboard/TaskManagement.Dashboard/TaskManagement.Dashboard.csproj" />
   </Folder>
+
   <Folder Name="/Services/File/">
     <Project Path="Services/File/TaskManagement.File/TaskManagement.File.csproj" />
   </Folder>
+
   <Folder Name="/Services/Project/">
     <Project Path="Services/Project/TaskManagement.Project/TaskManagement.Project.csproj" />
   </Folder>
+
   <Folder Name="/Services/Task/">
     <Project Path="Services/Task/TaskManagement.Task/TaskManagement.Task.csproj" />
   </Folder>
-  <Project Path="TaskManagement.Project.Tests/TaskManagement.Project.Tests.csproj" Id="c1f151a1-8125-47b3-a889-e70510557d92" />
-  <Project Path="TaskManagement.Task.Tests/TaskManagement.Task.Tests.csproj" Id="036989c4-765f-4abe-adff-b93f76e55f91" />
+
   <Folder Name="/Tests/">
     <Project Path="Tests/TaskManagement.Dashboard.Tests/TaskManagement.Dashboard.Tests.csproj" />
     <Project Path="Tests/TaskManagement.File.Tests/TaskManagement.File.Tests.csproj" />
+    <Project Path="Tests/TaskManagement.Project.Tests/TaskManagement.Project.Tests.csproj" />
+    <Project Path="Tests/TaskManagement.Task.Tests/TaskManagement.Task.Tests.csproj" />
   </Folder>
 </Solution>

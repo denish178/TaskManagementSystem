@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -8,7 +8,6 @@
 		<IsTestProject>true</IsTestProject>
 	</PropertyGroup>
 
-	<!-- Test packages -->
 	<ItemGroup>
 		<PackageReference Include="coverlet.collector" Version="6.0.4" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
@@ -18,19 +17,16 @@
 		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
 	</ItemGroup>
 
-	<!-- xUnit -->
 	<ItemGroup>
 		<Using Include="Xunit" />
 	</ItemGroup>
 
-	<!-- ASP.NET Core -->
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
-	<!-- Project Service Reference -->
 	<ItemGroup>
-		<ProjectReference Include="..\Services\Project\TaskManagement.Project\TaskManagement.Project.csproj" />
+		<ProjectReference Include="..\..\Services\Task\TaskManagement.Task\TaskManagement.Task.csproj" />
 	</ItemGroup>
 
 </Project>
