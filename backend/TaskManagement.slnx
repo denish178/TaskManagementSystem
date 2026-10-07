@@ -21,4 +21,8 @@
   <Folder Name="/Services/Task/">
     <Project Path="Services/Task/TaskManagement.Task/TaskManagement.Task.csproj" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/TaskManagement.Dashboard.Tests/TaskManagement.Dashboard.Tests.csproj" />
+    <Project Path="Tests/TaskManagement.File.Tests/TaskManagement.File.Tests.csproj" />
+  </Folder>
 </Solution>
