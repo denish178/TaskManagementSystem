@@ -21,4 +21,6 @@
   <Folder Name="/Services/Task/">
     <Project Path="Services/Task/TaskManagement.Task/TaskManagement.Task.csproj" />
   </Folder>
+  <Project Path="TaskManagement.Project.Tests/TaskManagement.Project.Tests.csproj" Id="c1f151a1-8125-47b3-a889-e70510557d92" />
+  <Project Path="TaskManagement.Task.Tests/TaskManagement.Task.Tests.csproj" Id="036989c4-765f-4abe-adff-b93f76e55f91" />
 </Solution>
