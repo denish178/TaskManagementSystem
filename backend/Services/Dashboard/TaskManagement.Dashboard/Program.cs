@@ -7,6 +7,7 @@ using TaskManagement.Dashboard.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Register the dashboard business logic and HTTP client factory.
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddHttpClient();
@@ -24,6 +25,7 @@ var jwtAudience = builder.Configuration["Jwt:Audience"]
     ?? throw new InvalidOperationException(
         "JWT audience is not configured.");
 
+// Configure JWT authentication using the application's Keycloak realm.
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -53,6 +55,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 
+// Configure Swagger with Bearer token support for protected endpoints.
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
