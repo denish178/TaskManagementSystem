@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using TaskManagement.Dashboard.DTOs;
 using TaskManagement.Dashboard.Interfaces;
@@ -8,35 +9,62 @@ public class DashboardService : IDashboardService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public DashboardService(
         IHttpClientFactory httpClientFactory,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
+        _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<ProjectDashboardDto?> GetProjectDashboardAsync(
-        Guid projectId)
+    private HttpClient CreateTaskServiceClient()
     {
         var client = _httpClientFactory.CreateClient();
 
-        var taskServiceUrl =
-            _configuration["ServiceUrls:TaskService"];
+        var authorizationHeader =
+            _httpContextAccessor.HttpContext?
+                .Request.Headers.Authorization
+                .FirstOrDefault();
 
-        var response =
-            await client.GetAsync(
-                $"{taskServiceUrl}/api/tasks/project/{projectId}/dashboard-data");
-
-        if (!response.IsSuccessStatusCode)
+        if (!string.IsNullOrWhiteSpace(authorizationHeader))
         {
-            return null;
+            client.DefaultRequestHeaders.Authorization =
+                AuthenticationHeaderValue.Parse(authorizationHeader);
         }
 
+        return client;
+    }
+
+    private string GetTaskServiceUrl()
+    {
+        return _configuration["ServiceUrls:TaskService"]
+            ?? throw new InvalidOperationException(
+                "Task Service URL is not configured.");
+    }
+
+    private async Task<TaskDashboardDataDto?>
+        GetProjectDashboardDataAsync(Guid projectId)
+    {
+        var client = CreateTaskServiceClient();
+
+        var response = await client.GetAsync(
+            $"{GetTaskServiceUrl()}/api/tasks/project/{projectId}/dashboard-data");
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content
+            .ReadFromJsonAsync<TaskDashboardDataDto>();
+    }
+
+    public async Task<ProjectDashboardDto?>
+        GetProjectDashboardAsync(Guid projectId)
+    {
         var data =
-            await response.Content
-                .ReadFromJsonAsync<TaskDashboardDataDto>();
+            await GetProjectDashboardDataAsync(projectId);
 
         if (data == null)
         {
@@ -55,47 +83,18 @@ public class DashboardService : IDashboardService
     public async Task<Dictionary<string, int>>
         GetProjectStatusCountsAsync(Guid projectId)
     {
-        var client = _httpClientFactory.CreateClient();
-
-        var taskServiceUrl =
-            _configuration["ServiceUrls:TaskService"];
-
-        var response =
-            await client.GetAsync(
-                $"{taskServiceUrl}/api/tasks/project/{projectId}/dashboard-data");
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return new Dictionary<string, int>();
-        }
-
         var data =
-            await response.Content
-                .ReadFromJsonAsync<TaskDashboardDataDto>();
+            await GetProjectDashboardDataAsync(projectId);
 
         return data?.StatusCounts
             ?? new Dictionary<string, int>();
     }
 
-    public async Task<int> GetOverdueTasksAsync(Guid projectId)
+    public async Task<int>
+        GetOverdueTasksAsync(Guid projectId)
     {
-        var client = _httpClientFactory.CreateClient();
-
-        var taskServiceUrl =
-            _configuration["ServiceUrls:TaskService"];
-
-        var response =
-            await client.GetAsync(
-                $"{taskServiceUrl}/api/tasks/project/{projectId}/dashboard-data");
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return 0;
-        }
-
         var data =
-            await response.Content
-                .ReadFromJsonAsync<TaskDashboardDataDto>();
+            await GetProjectDashboardDataAsync(projectId);
 
         return data?.OverdueTasks ?? 0;
     }
@@ -103,19 +102,12 @@ public class DashboardService : IDashboardService
     public async Task<SprintDashboardDto?>
         GetSprintProgressAsync(Guid sprintId)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = CreateTaskServiceClient();
 
-        var taskServiceUrl =
-            _configuration["ServiceUrls:TaskService"];
+        var response = await client.GetAsync(
+            $"{GetTaskServiceUrl()}/api/tasks/sprint/{sprintId}/dashboard-data");
 
-        var response =
-            await client.GetAsync(
-                $"{taskServiceUrl}/api/tasks/sprint/{sprintId}/dashboard-data");
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
+        response.EnsureSuccessStatusCode();
 
         var data =
             await response.Content

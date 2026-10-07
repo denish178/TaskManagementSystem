@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Moq.Protected;
@@ -53,9 +54,13 @@ public class DashboardServiceTests
                     })
                 .Build();
 
+        var httpContextAccessor =
+    new Mock<IHttpContextAccessor>();
+
         return new DashboardService(
             httpClientFactory.Object,
-            configuration);
+            configuration,
+            httpContextAccessor.Object);
     }
 
     [Fact]

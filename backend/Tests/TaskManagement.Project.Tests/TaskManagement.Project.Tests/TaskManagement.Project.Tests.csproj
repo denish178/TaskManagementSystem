@@ -30,7 +30,7 @@
 
 	<!-- Project Service Reference -->
 	<ItemGroup>
-		<ProjectReference Include="..\Services\Project\TaskManagement.Project\TaskManagement.Project.csproj" />
+		<ProjectReference Include="..\..\..\Services\Project\TaskManagement.Project\TaskManagement.Project.csproj" />
 	</ItemGroup>
 
 </Project>
