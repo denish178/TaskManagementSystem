@@ -12,8 +12,9 @@ namespace TaskManagement.File.Controllers;
 [Authorize]
 public class FilesController : ControllerBase
 {
+    // Maximum file size allowed by the File Service.
     private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
-
+    // Only allow file types required by the application.
 private static readonly string[] AllowedExtensions =
 {
     ".jpg",
@@ -57,15 +58,17 @@ public async Task<IActionResult> GetById(int id)
         [FromForm] int taskId,
         [FromForm] int uploadedBy)
     {
+        // Validate that a file was provided.
         if (file == null || file.Length == 0)
         {
             return BadRequest("File is required.");
         }
+        // Reject files larger than the configured limit.
         if (file.Length > MaxFileSize)
 {
     return BadRequest("File size cannot exceed 10 MB.");
 }
-
+// Validate the file extension before sending it to storage.
 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
 if (!AllowedExtensions.Contains(extension))
@@ -120,6 +123,7 @@ catch (Exception)
 [HttpGet("task/{taskId:int}")]
 public async Task<IActionResult> GetByTask(int taskId)
 {
+    // Return all attachments belonging to the specified task.
     var attachments = await _dbContext.Attachments
         .Where(a => a.TaskId == taskId)
         .OrderByDescending(a => a.UploadedAt)
@@ -130,13 +134,14 @@ public async Task<IActionResult> GetByTask(int taskId)
 [HttpGet("{id:int}/download")]
 public async Task<IActionResult> Download(int id)
 {
+    // First read the metadata to find the corresponding blob name.
     var attachment = await _dbContext.Attachments.FindAsync(id);
 
     if (attachment == null)
     {
         return NotFound("Attachment not found.");
     }
-
+    // Stream the actual file from Azure Blob Storage to the client.
     var stream = await _blobStorageService
         .DownloadAsync(attachment.BlobName);
 
@@ -149,16 +154,19 @@ public async Task<IActionResult> Download(int id)
 [HttpDelete("{id:int}")]
 public async Task<IActionResult> Delete(int id)
 {
+    // Find the metadata record before deleting the stored file.
     var attachment = await _dbContext.Attachments.FindAsync(id);
 
     if (attachment == null)
     {
         return NotFound("Attachment not found.");
     }
+    // Delete the physical file from Azure Blob Storage first.
 
     await _blobStorageService.DeleteAsync(
         attachment.BlobName);
 
+// Remove the corresponding metadata from SQL Server.
     _dbContext.Attachments.Remove(attachment);
 
     await _dbContext.SaveChangesAsync();

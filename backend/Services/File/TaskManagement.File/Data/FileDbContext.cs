@@ -9,6 +9,6 @@ public class FileDbContext : DbContext
         : base(options)
     {
     }
-
+    // Attachment metadata is stored in the SQL Server Attachments table.
     public DbSet<Attachment> Attachments { get; set; }
 }

@@ -19,6 +19,7 @@ public class DashboardController : ControllerBase
     [HttpGet("project/{projectId:guid}")]
     public async Task<IActionResult> GetProjectDashboard(Guid projectId)
     {
+        // Get the complete project summary from the Dashboard Service.
         var dashboard =
             await _dashboardService.GetProjectDashboardAsync(projectId);
 
@@ -33,6 +34,7 @@ public class DashboardController : ControllerBase
     [HttpGet("project/{projectId:guid}/status-counts")]
     public async Task<IActionResult> GetProjectStatusCounts(Guid projectId)
     {
+        // Return the number of tasks in each status for the project.
         var statusCounts =
             await _dashboardService.GetProjectStatusCountsAsync(projectId);
 
@@ -42,6 +44,7 @@ public class DashboardController : ControllerBase
     [HttpGet("project/{projectId:guid}/overdue")]
     public async Task<IActionResult> GetOverdueTasks(Guid projectId)
     {
+         // Return the number of overdue tasks for the project.
         var overdueTasks =
             await _dashboardService.GetOverdueTasksAsync(projectId);
 
@@ -55,6 +58,7 @@ public class DashboardController : ControllerBase
     [HttpGet("sprint/{sprintId:guid}/progress")]
     public async Task<IActionResult> GetSprintProgress(Guid sprintId)
     {
+        // Return task completion and progress information for a sprint.
         var progress =
             await _dashboardService.GetSprintProgressAsync(sprintId);
 
