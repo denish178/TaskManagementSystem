@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+// Configure JWT authentication using the application's Keycloak realm.
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -25,6 +26,8 @@ builder.Services
 builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
+
+// Configure Swagger with Bearer token support for protected endpoints.
 
 builder.Services.AddSwaggerGen(options =>
 {
