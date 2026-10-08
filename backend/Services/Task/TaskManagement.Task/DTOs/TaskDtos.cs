@@ -6,7 +6,6 @@ public record CreateTaskRequest(
     string Title,
     string? Description,
     string? Priority,
-    Guid CreatedBy,
     DateTime? DueDate
 );
 

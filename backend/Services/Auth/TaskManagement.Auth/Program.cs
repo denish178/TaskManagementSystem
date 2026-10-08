@@ -10,9 +10,24 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+var authConnectionString =
+    builder.Configuration.GetConnectionString("AuthDatabase")
+    ?? throw new InvalidOperationException(
+        "Auth database connection string is not configured.");
+
+var sqlConnectionStringBuilder =
+    new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(authConnectionString)
+    {
+        MultiSubnetFailover = true
+    };
+
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("AuthDatabase")));
+        sqlConnectionStringBuilder.ConnectionString,
+        sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure();
+        }));
 
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("JWT Key is not configured.");
@@ -77,4 +92,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-

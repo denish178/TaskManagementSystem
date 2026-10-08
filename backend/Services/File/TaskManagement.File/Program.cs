@@ -5,22 +5,38 @@ using TaskManagement.File.Data;
 using TaskManagement.File.Interfaces;
 using TaskManagement.File.Services;
 using Microsoft.OpenApi;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-// Configure JWT authentication using the application's Keycloak realm.
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("JWT key is not configured.");
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+    ?? throw new InvalidOperationException("JWT issuer is not configured.");
+
+var jwtAudience = builder.Configuration["Jwt:Audience"]
+    ?? throw new InvalidOperationException("JWT audience is not configured.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority =
-            "http://localhost:8080/realms/dotnet-training";
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
 
-        options.Audience = "dotnet-api";
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
 
-        options.RequireHttpsMetadata = false;
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey))
+        };
     });
 
 builder.Services.AddAuthorization();
