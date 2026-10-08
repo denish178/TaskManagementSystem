@@ -31,13 +31,12 @@ public class TasksControllerTests
         var controller = new TasksController(context);
 
         var request = new CreateTaskRequest(
-            Guid.NewGuid(),
-            null,
-            "Test Task",
-            "Test Description",
-            "High",
-            Guid.NewGuid(),
-            null);
+    Guid.NewGuid(),
+    null,
+    "Test Task",
+    "Test Description",
+    "High",
+    null);
 
         var result = await controller.CreateTask(request);
 
@@ -61,13 +60,12 @@ public class TasksControllerTests
         var controller = new TasksController(context);
 
         var request = new CreateTaskRequest(
-            Guid.Empty,
-            null,
-            "Test Task",
-            null,
-            null,
-            Guid.NewGuid(),
-            null);
+    Guid.Empty,
+    null,
+    "Test Task",
+    null,
+    null,
+    null);
 
         var result = await controller.CreateTask(request);
 
@@ -84,13 +82,12 @@ public class TasksControllerTests
         var controller = new TasksController(context);
 
         var request = new CreateTaskRequest(
-            Guid.NewGuid(),
-            null,
-            "   ",
-            null,
-            null,
-            Guid.NewGuid(),
-            null);
+    Guid.NewGuid(),
+    null,
+    "   ",
+    null,
+    null,
+    null);
 
         var result = await controller.CreateTask(request);
 
@@ -107,13 +104,12 @@ public class TasksControllerTests
         var controller = new TasksController(context);
 
         var request = new CreateTaskRequest(
-            Guid.NewGuid(),
-            null,
-            "Test Task",
-            null,
-            null,
-            Guid.NewGuid(),
-            null);
+    Guid.NewGuid(),
+    null,
+    "Test Task",
+    null,
+    null,
+    null);
 
         await controller.CreateTask(request);
 
@@ -130,13 +126,12 @@ public class TasksControllerTests
         var controller = new TasksController(context);
 
         var request = new CreateTaskRequest(
-            Guid.NewGuid(),
-            null,
-            "   Test Task   ",
-            null,
-            "High",
-            Guid.NewGuid(),
-            null);
+    Guid.NewGuid(),
+    null,
+    "   Test Task   ",
+    null,
+    "High",
+    null);
 
         await controller.CreateTask(request);
 
