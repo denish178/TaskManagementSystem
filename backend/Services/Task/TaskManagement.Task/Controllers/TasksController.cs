@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TaskManagement.Task.Data;
 using TaskManagement.Task.DTOs;
 using TaskManagement.Task.Models;
@@ -8,9 +10,18 @@ namespace TaskManagement.Task.Controllers;
 
 [ApiController]
 [Route("api/tasks")]
+[Authorize]
 public class TasksController : ControllerBase
 {
     private readonly TaskDbContext _context;
+
+    private static readonly string[] AllowedStatuses =
+    {
+        "Todo",
+        "InProgress",
+        "Testing",
+        "Done"
+    };
 
     public TasksController(TaskDbContext context)
     {
@@ -42,33 +53,48 @@ public class TasksController : ControllerBase
             });
         }
 
+        var title = request.Title.Trim();
+
+        if (title.Length > 250)
+        {
+            return BadRequest(new
+            {
+                message = "Task title cannot exceed 250 characters."
+            });
+        }
+
+        if (request.Description?.Length > 5000)
+        {
+            return BadRequest(new
+            {
+                message = "Task description cannot exceed 5000 characters."
+            });
+        }
+
+        var userId = GetCurrentUserId();
+        var now = DateTime.UtcNow;
+
         var task = new TaskItem
         {
             Id = Guid.NewGuid(),
-
             ProjectId = request.ProjectId,
-
             SprintId = request.SprintId,
+            Title = title,
 
-            Title = request.Title.Trim(),
-
-            Description = request.Description,
+            Description = string.IsNullOrWhiteSpace(request.Description)
+                ? null
+                : request.Description.Trim(),
 
             Priority = string.IsNullOrWhiteSpace(request.Priority)
                 ? "Medium"
                 : request.Priority.Trim(),
 
             Status = "Todo",
-
             AssigneeId = null,
-
-            CreatedBy = request.CreatedBy,
-
+            CreatedBy = userId,
             DueDate = request.DueDate,
-
-            CreatedAt = DateTime.UtcNow,
-
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         };
 
         _context.Tasks.Add(task);
@@ -76,15 +102,27 @@ public class TasksController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(
-            nameof(GetTask),
-            new { taskId = task.Id },
-            task);
+    nameof(GetTask),
+    new { taskId = task.Id },
+    new
+    {
+        task.Id,
+        task.ProjectId,
+        task.SprintId,
+        task.Title,
+        task.Description,
+        task.Status,
+        task.Priority,
+        task.AssigneeId,
+        task.CreatedBy,
+        task.DueDate,
+        task.CreatedAt,
+        task.UpdatedAt
+    });
     }
-
 
     // =========================================================
     // GET ALL TASKS
-    //
     // GET /api/tasks
     //
     // Optional filters:
@@ -120,14 +158,25 @@ public class TasksController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(status))
         {
+            var normalizedStatus = NormalizeStatus(status);
+
+            if (normalizedStatus == null)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Invalid status. Allowed values: Todo, InProgress, Testing, Done."
+                });
+            }
+
             query = query.Where(x =>
-                x.Status == status);
+                x.Status == normalizedStatus);
         }
 
         if (!string.IsNullOrWhiteSpace(priority))
         {
             query = query.Where(x =>
-                x.Priority == priority);
+                x.Priority == priority.Trim());
         }
 
         if (assigneeId.HasValue)
@@ -162,7 +211,6 @@ public class TasksController : ControllerBase
 
         return Ok(tasks);
     }
-
 
     // =========================================================
     // GET SINGLE TASK
@@ -216,7 +264,6 @@ public class TasksController : ControllerBase
         return Ok(task);
     }
 
-
     // =========================================================
     // UPDATE TASK
     // PUT /api/tasks/{taskId}
@@ -235,6 +282,24 @@ public class TasksController : ControllerBase
             });
         }
 
+        var title = request.Title.Trim();
+
+        if (title.Length > 250)
+        {
+            return BadRequest(new
+            {
+                message = "Task title cannot exceed 250 characters."
+            });
+        }
+
+        if (request.Description?.Length > 5000)
+        {
+            return BadRequest(new
+            {
+                message = "Task description cannot exceed 5000 characters."
+            });
+        }
+
         var task = await _context.Tasks
             .FirstOrDefaultAsync(x => x.Id == taskId);
 
@@ -246,9 +311,12 @@ public class TasksController : ControllerBase
             });
         }
 
-        task.Title = request.Title.Trim();
+        task.Title = title;
 
-        task.Description = request.Description;
+        task.Description =
+            string.IsNullOrWhiteSpace(request.Description)
+                ? null
+                : request.Description.Trim();
 
         task.SprintId = request.SprintId;
 
@@ -258,14 +326,26 @@ public class TasksController : ControllerBase
         }
 
         task.DueDate = request.DueDate;
-
         task.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 
-        return Ok(task);
+        return Ok(new
+        {
+            task.Id,
+            task.ProjectId,
+            task.SprintId,
+            task.Title,
+            task.Description,
+            task.Status,
+            task.Priority,
+            task.AssigneeId,
+            task.CreatedBy,
+            task.DueDate,
+            task.CreatedAt,
+            task.UpdatedAt
+        });
     }
-
 
     // =========================================================
     // DELETE TASK
@@ -294,7 +374,6 @@ public class TasksController : ControllerBase
         return NoContent();
     }
 
-
     // =========================================================
     // UPDATE STATUS
     // PATCH /api/tasks/{taskId}/status
@@ -313,24 +392,14 @@ public class TasksController : ControllerBase
             });
         }
 
-        var allowedStatuses = new[]
-        {
-            "Todo",
-            "InProgress",
-            "Review",
-            "Done"
-        };
+        var status = NormalizeStatus(request.Status);
 
-        var status = request.Status.Trim();
-
-        if (!allowedStatuses.Contains(
-                status,
-                StringComparer.OrdinalIgnoreCase))
+        if (status == null)
         {
             return BadRequest(new
             {
                 message =
-                    "Invalid status. Allowed values: Todo, InProgress, Review, Done."
+                    "Invalid status. Allowed values: Todo, InProgress, Testing, Done."
             });
         }
 
@@ -345,27 +414,36 @@ public class TasksController : ControllerBase
             });
         }
 
-        task.Status = allowedStatuses
-            .First(x => x.Equals(
-                status,
-                StringComparison.OrdinalIgnoreCase));
-
+        task.Status = status;
         task.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 
-        return Ok(task);
+        return Ok(new
+        {
+            task.Id,
+            task.ProjectId,
+            task.SprintId,
+            task.Title,
+            task.Description,
+            task.Status,
+            task.Priority,
+            task.AssigneeId,
+            task.CreatedBy,
+            task.DueDate,
+            task.CreatedAt,
+            task.UpdatedAt
+        });
     }
-
 
     // =========================================================
     // ASSIGN TASK
     // PATCH /api/tasks/{taskId}/assign
     //
-    // Admin authorization will be added later
-    // when Auth Service / JWT integration is connected.
+    // ONLY ADMIN CAN ASSIGN TASKS
     // =========================================================
 
+    [Authorize(Roles = "Admin")]
     [HttpPatch("{taskId:guid}/assign")]
     public async Task<IActionResult> AssignTask(
         Guid taskId,
@@ -391,78 +469,73 @@ public class TasksController : ControllerBase
         }
 
         task.AssigneeId = request.AssigneeId;
-
         task.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 
-        return Ok(task);
+        return Ok(new
+        {
+            task.Id,
+            task.ProjectId,
+            task.SprintId,
+            task.Title,
+            task.Description,
+            task.Status,
+            task.Priority,
+            task.AssigneeId,
+            task.CreatedBy,
+            task.DueDate,
+            task.CreatedAt,
+            task.UpdatedAt
+        });
     }
-
 
     // =========================================================
     // PROJECT DASHBOARD DATA
+    // GET /api/tasks/project/{projectId}/dashboard-data
     //
-    // GET
-    // /api/tasks/project/{projectId}/dashboard-data
-    //
-    // Response:
-    //
-    // {
-    //   "projectId": "...",
-    //   "totalTasks": 25,
-    //   "statusCounts": {
-    //      "todo": 8,
-    //      "inProgress": 7,
-    //      "testing": 5,
-    //      "done": 5
-    //   },
-    //   "overdueTasks": 3
-    // }
+    // Kept temporarily.
+    // We will inspect Dashboard Service before deciding
+    // whether these endpoints should be removed.
     // =========================================================
 
     [HttpGet("project/{projectId:guid}/dashboard-data")]
     public async Task<IActionResult> GetProjectDashboardData(
         Guid projectId)
     {
-        var tasks = await _context.Tasks
-            .AsNoTracking()
-            .Where(x => x.ProjectId == projectId)
-            .ToListAsync();
+        var totalTasks = await _context.Tasks
+            .CountAsync(x => x.ProjectId == projectId);
 
-        var totalTasks = tasks.Count;
+        var todo = await _context.Tasks
+            .CountAsync(x =>
+                x.ProjectId == projectId &&
+                x.Status == "Todo");
 
-        var todo = tasks.Count(x =>
-            x.Status.Equals(
-                "Todo",
-                StringComparison.OrdinalIgnoreCase));
+        var inProgress = await _context.Tasks
+            .CountAsync(x =>
+                x.ProjectId == projectId &&
+                x.Status == "InProgress");
 
-        var inProgress = tasks.Count(x =>
-            x.Status.Equals(
-                "InProgress",
-                StringComparison.OrdinalIgnoreCase));
+        var testing = await _context.Tasks
+            .CountAsync(x =>
+                x.ProjectId == projectId &&
+                x.Status == "Testing");
 
-        var testing = tasks.Count(x =>
-            x.Status.Equals(
-                "Review",
-                StringComparison.OrdinalIgnoreCase));
+        var done = await _context.Tasks
+            .CountAsync(x =>
+                x.ProjectId == projectId &&
+                x.Status == "Done");
 
-        var done = tasks.Count(x =>
-            x.Status.Equals(
-                "Done",
-                StringComparison.OrdinalIgnoreCase));
-
-        var overdueTasks = tasks.Count(x =>
-            x.DueDate.HasValue &&
-            x.DueDate.Value < DateTime.UtcNow &&
-            !x.Status.Equals(
-                "Done",
-                StringComparison.OrdinalIgnoreCase));
+        var overdueTasks = await _context.Tasks
+            .CountAsync(x =>
+                x.ProjectId == projectId &&
+                x.DueDate.HasValue &&
+                x.DueDate.Value < DateTime.UtcNow &&
+                x.Status != "Done");
 
         return Ok(new
         {
             projectId,
-
             totalTasks,
 
             statusCounts = new
@@ -477,85 +550,85 @@ public class TasksController : ControllerBase
         });
     }
 
-
     // =========================================================
     // SPRINT DASHBOARD DATA
+    // GET /api/tasks/sprint/{sprintId}/dashboard-data
     //
-    // GET
-    // /api/tasks/sprint/{sprintId}/dashboard-data
-    //
-    // Response:
-    //
-    // {
-    //   "sprintId": "...",
-    //   "totalTasks": 20,
-    //   "completedTasks": 12,
-    //   "todo": 3,
-    //   "inProgress": 3,
-    //   "testing": 2,
-    //   "done": 12,
-    //   "progressPercentage": 60
-    // }
+    // Kept temporarily.
+    // We will inspect Dashboard Service before deciding
+    // whether these endpoints should be removed.
     // =========================================================
 
     [HttpGet("sprint/{sprintId:guid}/dashboard-data")]
     public async Task<IActionResult> GetSprintDashboardData(
         Guid sprintId)
     {
-        var tasks = await _context.Tasks
-            .AsNoTracking()
-            .Where(x => x.SprintId == sprintId)
-            .ToListAsync();
+        var totalTasks = await _context.Tasks
+            .CountAsync(x => x.SprintId == sprintId);
 
-        var totalTasks = tasks.Count;
+        var completedTasks = await _context.Tasks
+            .CountAsync(x =>
+                x.SprintId == sprintId &&
+                x.Status == "Done");
 
-        var completedTasks = tasks.Count(x =>
-            x.Status.Equals(
-                "Done",
-                StringComparison.OrdinalIgnoreCase));
+        var todo = await _context.Tasks
+            .CountAsync(x =>
+                x.SprintId == sprintId &&
+                x.Status == "Todo");
 
-        var todo = tasks.Count(x =>
-            x.Status.Equals(
-                "Todo",
-                StringComparison.OrdinalIgnoreCase));
+        var inProgress = await _context.Tasks
+            .CountAsync(x =>
+                x.SprintId == sprintId &&
+                x.Status == "InProgress");
 
-        var inProgress = tasks.Count(x =>
-            x.Status.Equals(
-                "InProgress",
-                StringComparison.OrdinalIgnoreCase));
-
-        var testing = tasks.Count(x =>
-            x.Status.Equals(
-                "Review",
-                StringComparison.OrdinalIgnoreCase));
-
-        var done = completedTasks;
+        var testing = await _context.Tasks
+            .CountAsync(x =>
+                x.SprintId == sprintId &&
+                x.Status == "Testing");
 
         var progressPercentage = totalTasks == 0
             ? 0
             : Math.Round(
-                (double)completedTasks /
-                totalTasks *
-                100,
+                (double)completedTasks / totalTasks * 100,
                 2);
 
         return Ok(new
         {
             sprintId,
-
             totalTasks,
-
             completedTasks,
-
             todo,
-
             inProgress,
-
             testing,
-
-            done,
-
+            done = completedTasks,
             progressPercentage
         });
+    }
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
+
+    private Guid GetCurrentUserId()
+    {
+        var userId =
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
+
+        if (!Guid.TryParse(userId, out var parsedUserId))
+        {
+            throw new UnauthorizedAccessException(
+                "User ID claim is missing or invalid.");
+        }
+
+        return parsedUserId;
+    }
+
+    private static string? NormalizeStatus(string status)
+    {
+        return AllowedStatuses.FirstOrDefault(
+            x => x.Equals(
+                status.Trim(),
+                StringComparison.OrdinalIgnoreCase));
     }
 }
