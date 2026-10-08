@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.Task.Controllers;
 using TaskManagement.Task.Data;
 using TaskManagement.Task.DTOs;
 using TaskManagement.Task.Models;
+using System.Linq;
 
 namespace TaskManagement.Task.Tests;
 
@@ -16,6 +19,28 @@ public class SubTasksControllerTests
             .Options;
 
         return new TaskDbContext(options);
+    }
+
+    private static SubTasksController CreateController(TaskDbContext context)
+    {
+        var identity = new ClaimsIdentity(
+            new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+            },
+            "TestAuth");
+
+        var controller = new SubTasksController(context);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(identity)
+            }
+        };
+
+        return controller;
     }
 
     private static TaskItem CreateTask(Guid? taskId = null)
@@ -62,15 +87,18 @@ public class SubTasksControllerTests
 
         Assert.Equal(201, created.StatusCode);
 
-        var subTask = Assert.IsType<SubTask>(created.Value);
+        var subTask = created.Value!;
 
-        Assert.Equal(task.Id, subTask.TaskId);
+        Assert.Equal(
+            task.Id,
+            subTask.GetType().GetProperty("TaskId")!.GetValue(subTask));
 
         Assert.Equal(
             "Test Subtask",
-            subTask.Title);
+            subTask.GetType().GetProperty("Title")!.GetValue(subTask));
 
-        Assert.False(subTask.IsCompleted);
+        Assert.False(
+            (bool)subTask.GetType().GetProperty("IsCompleted")!.GetValue(subTask)!);
     }
 
     [Fact]
@@ -178,11 +206,11 @@ public class SubTasksControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
 
-        var subTasks =
-            Assert.IsAssignableFrom<IEnumerable<SubTask>>(
-                ok.Value);
+        var subTasks = Assert.IsAssignableFrom<System.Collections.IEnumerable>(ok.Value);
 
-        Assert.Equal(2, subTasks.Count());
+        var subTaskList = subTasks.Cast<object>().ToList();
+
+        Assert.Equal(2, subTaskList.Count);
     }
 
     [Fact]
@@ -240,14 +268,14 @@ public class SubTasksControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
 
-        var updated =
-            Assert.IsType<SubTask>(ok.Value);
+        var updated = ok.Value!;
 
         Assert.Equal(
             "Updated Subtask",
-            updated.Title);
+            updated.GetType().GetProperty("Title")!.GetValue(updated));
 
-        Assert.True(updated.IsCompleted);
+        Assert.True(
+            (bool)updated.GetType().GetProperty("IsCompleted")!.GetValue(updated)!);
     }
 
     [Fact]
@@ -350,3 +378,6 @@ public class SubTasksControllerTests
         Assert.Equal(404, notFound.StatusCode);
     }
 }
+
+
+

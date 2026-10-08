@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.Project.Controllers;
 using TaskManagement.Project.Data;
@@ -21,6 +23,28 @@ public class ProjectControllerTests
             .Options;
 
         return new ProjectDbContext(options);
+    }
+
+    private static ProjectsController CreateController(ProjectDbContext context)
+    {
+        var identity = new ClaimsIdentity(
+            new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+            },
+            "TestAuth");
+
+        var controller = new ProjectsController(context);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(identity)
+            }
+        };
+
+        return controller;
     }
 
     // =========================================================
@@ -47,7 +71,7 @@ public class ProjectControllerTests
         context.Teams.Add(team);
         await context.SaveChangesAsync();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         var request = new CreateProjectRequest(
             teamId,
@@ -84,7 +108,7 @@ public class ProjectControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         var request = new CreateProjectRequest(
             Guid.Empty,
@@ -106,7 +130,7 @@ public class ProjectControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         var request = new CreateProjectRequest(
             Guid.NewGuid(),
@@ -128,7 +152,7 @@ public class ProjectControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         var request = new CreateProjectRequest(
             Guid.NewGuid(),
@@ -180,7 +204,7 @@ public class ProjectControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -230,7 +254,7 @@ public class ProjectControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -254,7 +278,7 @@ public class ProjectControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         var projectId = Guid.NewGuid();
 
@@ -292,7 +316,7 @@ public class ProjectControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateProjectRequest(
             "Updated Project Name",
@@ -326,7 +350,7 @@ public class ProjectControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateProjectRequest(
             "",
@@ -348,7 +372,7 @@ public class ProjectControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateProjectRequest(
             "Updated Project",
@@ -392,7 +416,7 @@ public class ProjectControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -413,7 +437,7 @@ public class ProjectControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new ProjectsController(context);
+        var controller = CreateController(context);
 
         var projectId = Guid.NewGuid();
 
@@ -425,3 +449,5 @@ public class ProjectControllerTests
         Assert.IsType<NotFoundObjectResult>(result);
     }
 }
+
+

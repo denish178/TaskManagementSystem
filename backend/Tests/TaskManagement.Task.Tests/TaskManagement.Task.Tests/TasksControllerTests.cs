@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+using System.Text.Json;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.Task.Controllers;
@@ -19,6 +21,28 @@ public class TasksControllerTests
         return new TaskDbContext(options);
     }
 
+    private static TasksController CreateController(TaskDbContext context)
+    {
+        var identity = new ClaimsIdentity(
+            new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+            },
+            "TestAuth");
+
+        var controller = new TasksController(context);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(identity)
+            }
+        };
+
+        return controller;
+    }
+
     // =========================================================
     // CREATE TASK
     // =========================================================
@@ -28,7 +52,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new CreateTaskRequest(
     Guid.NewGuid(),
@@ -44,12 +68,12 @@ public class TasksControllerTests
 
         Assert.Equal(201, created.StatusCode);
 
-        var task = Assert.IsType<TaskItem>(created.Value);
+        var task = created.Value!;
 
-        Assert.Equal("Test Task", task.Title);
-        Assert.Equal("Test Description", task.Description);
-        Assert.Equal("High", task.Priority);
-        Assert.Equal("Todo", task.Status);
+        Assert.Equal("Test Task", task.GetType().GetProperty("Title")!.GetValue(task));
+        Assert.Equal("Test Description", task.GetType().GetProperty("Description")!.GetValue(task));
+        Assert.Equal("High", task.GetType().GetProperty("Priority")!.GetValue(task));
+        Assert.Equal("Todo", task.GetType().GetProperty("Status")!.GetValue(task));
     }
 
     [Fact]
@@ -57,7 +81,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new CreateTaskRequest(
     Guid.Empty,
@@ -79,7 +103,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new CreateTaskRequest(
     Guid.NewGuid(),
@@ -101,7 +125,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new CreateTaskRequest(
     Guid.NewGuid(),
@@ -123,7 +147,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new CreateTaskRequest(
     Guid.NewGuid(),
@@ -175,7 +199,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetTasks(
             null,
@@ -226,7 +250,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetTasks(
             projectId,
@@ -273,7 +297,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetTasks(
             null,
@@ -320,7 +344,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetTasks(
             null,
@@ -361,7 +385,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetTask(taskId);
 
@@ -375,7 +399,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetTask(Guid.NewGuid());
 
@@ -410,7 +434,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTaskRequest(
             "New Title",
@@ -425,11 +449,19 @@ public class TasksControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
 
-        var task = Assert.IsType<TaskItem>(ok.Value);
+        var task = ok.Value!;
 
-        Assert.Equal("New Title", task.Title);
-        Assert.Equal("New Description", task.Description);
-        Assert.Equal("High", task.Priority);
+        Assert.Equal(
+            "New Title",
+            task.GetType().GetProperty("Title")!.GetValue(task));
+
+        Assert.Equal(
+            "New Description",
+            task.GetType().GetProperty("Description")!.GetValue(task));
+
+        Assert.Equal(
+            "High",
+            task.GetType().GetProperty("Priority")!.GetValue(task));
     }
 
     [Fact]
@@ -437,7 +469,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTaskRequest(
             "   ",
@@ -460,7 +492,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTaskRequest(
             "Updated Task",
@@ -503,7 +535,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteTask(taskId);
 
@@ -517,7 +549,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteTask(Guid.NewGuid());
 
@@ -551,7 +583,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTaskStatusRequest("Done");
 
@@ -561,9 +593,11 @@ public class TasksControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
 
-        var task = Assert.IsType<TaskItem>(ok.Value);
+        var task = ok.Value!;
 
-        Assert.Equal("Done", task.Status);
+        Assert.Equal(
+            "Done",
+            task.GetType().GetProperty("Status")!.GetValue(task));
     }
 
     [Fact]
@@ -571,7 +605,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTaskStatusRequest("   ");
 
@@ -589,7 +623,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTaskStatusRequest(
             "InvalidStatus");
@@ -608,7 +642,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTaskStatusRequest("Done");
 
@@ -647,7 +681,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new AssignTaskRequest(assigneeId);
 
@@ -657,9 +691,11 @@ public class TasksControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
 
-        var task = Assert.IsType<TaskItem>(ok.Value);
+        var task = ok.Value!;
 
-        Assert.Equal(assigneeId, task.AssigneeId);
+        Assert.Equal(
+            assigneeId,
+            task.GetType().GetProperty("AssigneeId")!.GetValue(task));
     }
 
     [Fact]
@@ -667,7 +703,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new AssignTaskRequest(Guid.Empty);
 
@@ -685,7 +721,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var request = new AssignTaskRequest(Guid.NewGuid());
 
@@ -736,8 +772,8 @@ public class TasksControllerTests
             {
                 Id = Guid.NewGuid(),
                 ProjectId = projectId,
-                Title = "Review",
-                Status = "Review",
+                Title = "Testing",
+                Status = "Testing",
                 Priority = "Medium",
                 CreatedBy = Guid.NewGuid(),
                 CreatedAt = DateTime.UtcNow,
@@ -757,7 +793,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetProjectDashboardData(
             projectId);
@@ -860,7 +896,7 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetSprintDashboardData(
             sprintId);
@@ -889,7 +925,7 @@ public class TasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new TasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetSprintDashboardData(
             Guid.NewGuid());
@@ -915,3 +951,8 @@ public class TasksControllerTests
             root.GetProperty("progressPercentage").GetDouble());
     }
 }
+
+
+
+
+

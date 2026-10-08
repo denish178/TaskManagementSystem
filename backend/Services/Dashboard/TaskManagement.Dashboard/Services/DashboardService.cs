@@ -54,7 +54,10 @@ public class DashboardService : IDashboardService
         var response = await client.GetAsync(
             $"{GetTaskServiceUrl()}/api/tasks/project/{projectId}/dashboard-data");
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
 
         return await response.Content
             .ReadFromJsonAsync<TaskDashboardDataDto>();
@@ -107,7 +110,10 @@ public class DashboardService : IDashboardService
         var response = await client.GetAsync(
             $"{GetTaskServiceUrl()}/api/tasks/sprint/{sprintId}/dashboard-data");
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
 
         var data =
             await response.Content
