@@ -6,9 +6,9 @@ See git history / prior sections: access control, notifications, AI, SignalR Kan
 
 ## Phase 4 (implemented)
 
-- **Redis SignalR backplane** — Optional `SignalR:Redis:Configuration` via `AddTaskManagementSignalR` in Shared; **Task**, **Comment**, **Notification**; `tms-redis` in `docker-compose.dev.yml`; `start-backend.ps1` sets `localhost:6379` when using script mode.
+- **Redis SignalR backplane** — Optional `SignalR:Redis:Configuration` via `AddTaskManagementSignalR` in Shared; **Task**, **Comment**, **Notification**; `tms-redis` in `deploy/docker/docker-compose.dev.yml`; `start-backend.ps1` sets `localhost:6379` when using script mode.
 - **Real-time + browser push** — `NotificationHub` (`/hubs/notifications`); `NotificationReceived` event; navbar updates instantly; **desktop notifications** when tab is in background (permission prompt on login).
-- **Docker hardening** — `Dockerfile.microservice` runs as `$APP_UID`, includes `curl` **HEALTHCHECK** on `/health`; compose apps wire Redis for SignalR scale-out.
+- **Docker hardening** — `deploy/docker/Dockerfile.microservice` runs as `$APP_UID`, includes `curl` **HEALTHCHECK** on `/health`; compose apps wire Redis for SignalR scale-out.
 
 ## Phase 5 (next)
 

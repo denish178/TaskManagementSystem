@@ -21,7 +21,7 @@ while ((Get-Date) -lt $deadline) {
     }
     if ($state -eq "exited" -or $state -eq "dead") {
       Write-Host "tms-sql is not running (state: $state). Check: docker logs tms-sql"
-      throw "SQL container tms-sql stopped. Reset with: docker compose -f docker-compose.dev.yml down -v"
+      throw "SQL container tms-sql stopped. Reset with: docker compose --project-directory <repo-root> -f deploy/docker/docker-compose.dev.yml down -v"
     }
   }
 

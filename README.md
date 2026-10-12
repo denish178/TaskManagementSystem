@@ -83,8 +83,8 @@ Migrations run automatically in **Development** for Auth, Task, Project, File, a
 | `scripts/wait-sql.ps1` | Wait until SQL port is ready |
 | `scripts/health-check.ps1` | GET `/health` on each service |
 | `scripts/e2e-gateway.ps1` | API smoke tests through the Gateway |
-| `docker-compose.apps.yml` | Optional: run all .NET services in Docker (with `docker-compose.dev.yml`) |
-| Redis (`tms-redis`, `:6379`) | Optional SignalR backplane (started with `docker-compose.dev.yml`) |
+| `deploy/docker/docker-compose.apps.yml` | Optional: run all .NET services in Docker (with `docker-compose.dev.yml`) |
+| Redis (`tms-redis`, `:6379`) | Optional SignalR backplane (started with `deploy/docker/docker-compose.dev.yml`) |
 
 Logs: `logs/*.log`  
 Process IDs: `.local/backend-pids.json`
@@ -92,7 +92,7 @@ Process IDs: `.local/backend-pids.json`
 ## Manual startup
 
 ```powershell
-docker compose -f docker-compose.dev.yml up -d
+docker compose --project-directory . -f deploy/docker/docker-compose.dev.yml up -d
 powershell -File scripts/wait-sql.ps1
 $env:ASPNETCORE_ENVIRONMENT = "Development"
 dotnet run --project backend/Services/Auth/TaskManagement.Auth
@@ -118,7 +118,7 @@ VITE_API_BASE_URL=http://localhost:5204
 ## Tests
 
 ```powershell
-dotnet test backend/TaskManagement.slnx
+dotnet test TaskManagement.slnx
 cd frontend
 npm run lint
 npm run test
@@ -132,4 +132,4 @@ See [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) for the security/DevOps roadmap
 
 ## More detail
 
-See [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md).
+See [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) and [docs/REPOSITORY_LAYOUT.md](docs/REPOSITORY_LAYOUT.md).

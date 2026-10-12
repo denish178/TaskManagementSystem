@@ -1,5 +1,6 @@
 # Local infrastructure only (no Azure). File attachments use on-disk storage in Development.
-# Usage: copy .env.example to .env, then: docker compose -f docker-compose.dev.yml up -d
+# Usage (from repo root): copy .env.example to .env, then:
+#   docker compose --project-directory . -f deploy/docker/docker-compose.dev.yml up -d
 
 services:
   sqlserver:

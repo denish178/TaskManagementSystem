@@ -4,7 +4,7 @@
 
 | Service | Local replacement |
 |---------|-------------------|
-| Azure SQL | SQL Server in Docker (`docker-compose.dev.yml`) |
+| Azure SQL | SQL Server in Docker (`deploy/docker/docker-compose.dev.yml`) |
 | MongoDB (comments) | MongoDB in Docker |
 | Azure Blob | **Local disk** (`FileStorage:Mode=Local` in File `appsettings.Development.json`) |
 | Key Vault | Not used locally; copy `.env.example` → `.env` (repo root, gitignored) |
@@ -20,7 +20,7 @@ powershell -File scripts/start-local.ps1
 Or infrastructure only:
 
 ```powershell
-docker compose -f docker-compose.dev.yml up -d
+docker compose --project-directory . -f deploy/docker/docker-compose.dev.yml up -d
 powershell -File scripts/wait-sql.ps1
 ```
 
