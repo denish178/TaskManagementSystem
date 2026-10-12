@@ -52,13 +52,33 @@ Passwords: `TMS_DEV_ADMIN_PASSWORD` and `TMS_DEV_USER_PASSWORD` in `.env`.
 
 ## Frontend
 
+React client under `frontend/`. All API calls go through the **Gateway** (`VITE_API_BASE_URL`), not individual microservices.
+
 ```bash
 cd frontend
-cp .env.example .env
+cp .env.example .env   # Windows: copy .env.example .env
+npm install
 npm run dev
 ```
 
-`VITE_API_BASE_URL=http://localhost:5204`
+`VITE_API_BASE_URL=http://localhost:5204` (no trailing slash).
+
+| Command | Description |
+|--------|-------------|
+| `npm run dev` | Vite dev server (`http://localhost:5173`) |
+| `npm run build` | Production build to `dist/` (gitignored) |
+| `npm run preview` | Preview production build |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest unit tests |
+| `npm run test:e2e` | Playwright (needs backend + frontend running) |
+
+**Auth:** JWT via `POST /api/auth/login`; token in **sessionStorage**. Task assign UI only for `user.role === "Admin"`.
+
+**Deploy:** `dist/` + `public/staticwebapp.config.json` (Azure Static Web Apps SPA fallback).
+
+**Gateway routes used by UI:** `/api/auth`, projects/teams/sprints, tasks, comments, files, dashboard, `/api/chat` (floating widget), notifications + SignalR hubs.
+
+Optional API smoke test: `powershell -File scripts/e2e-gateway.ps1`.
 
 ## Production
 
