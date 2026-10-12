@@ -14,11 +14,11 @@ namespace TaskManagement.Comment.Controllers;
 [Authorize]
 public class CommentsController : ControllerBase
 {
-    private readonly CommentRepository _repository;
+    private readonly ICommentRepository _repository;
     private readonly IHubContext<CommentHub> _hub;
 
     public CommentsController(
-        CommentRepository repository,
+        ICommentRepository repository,
         IHubContext<CommentHub> hub)
     {
         _repository = repository;

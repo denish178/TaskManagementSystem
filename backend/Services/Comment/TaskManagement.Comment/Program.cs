@@ -46,7 +46,7 @@ var mongoClient = new MongoClient(mongoConnectionString);
 builder.Services.AddSingleton<IMongoDatabase>(
     mongoClient.GetDatabase(mongoDatabaseName));
 
-builder.Services.AddScoped<CommentRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 
 builder.Services.AddCors(options =>
 {
