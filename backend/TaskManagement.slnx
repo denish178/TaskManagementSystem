@@ -29,6 +29,18 @@
     <Project Path="Services/Task/TaskManagement.Task/TaskManagement.Task.csproj" />
   </Folder>
 
+  <Folder Name="/Services/AI/">
+    <Project Path="Services/AI/TaskManagement.AI/TaskManagement.AI.csproj" />
+  </Folder>
+
+  <Folder Name="/Services/Notification/">
+    <Project Path="Services/Notification/TaskManagement.Notification/TaskManagement.Notification.csproj" />
+  </Folder>
+
+  <Folder Name="/Shared/">
+    <Project Path="Shared/TaskManagement.Shared/TaskManagement.Shared.csproj" />
+  </Folder>
+
   <Folder Name="/Tests/">
     <Project Path="Tests/TaskManagement.Dashboard.Tests/TaskManagement.Dashboard.Tests.csproj" />
     <Project Path="Tests/TaskManagement.File.Tests/TaskManagement.File.Tests.csproj" />

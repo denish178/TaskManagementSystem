@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using TaskManagement.Shared.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -70,6 +72,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitingExtensions.LoginPolicy)]
     public async Task<IActionResult> Login(LoginRequest request)
     {
         var user = await _context.Users
@@ -150,8 +153,9 @@ public class AuthController : ControllerBase
     [Microsoft.AspNetCore.Authorization.Authorize]
     public async Task<IActionResult> GetProfile()
     {
-        var userIdClaim = User.FindFirst(
-    ClaimTypes.NameIdentifier)?.Value;
+        var userIdClaim =
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
         if (string.IsNullOrEmpty(userIdClaim))
         {
@@ -194,7 +198,9 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdClaim =
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
         if (!Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized();
@@ -228,7 +234,9 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdClaim =
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
         if (!Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized();

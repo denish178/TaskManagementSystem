@@ -1,21 +1,16 @@
 using Microsoft.EntityFrameworkCore;
-using TaskManagement.Task.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using System.Text;
+using TaskManagement.Task.Data;
+using TaskManagement.Task.Hubs;
+using TaskManagement.Task.Services;
+using TaskManagement.Shared.Auth;
+using TaskManagement.Shared.Health;
+using TaskManagement.Shared.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// =====================================================
-// CONTROLLERS
-// =====================================================
-
 builder.Services.AddControllers();
-
-// =====================================================
-// SWAGGER
-// =====================================================
+builder.Services.AddTaskManagementSignalR(builder.Configuration);
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -39,10 +34,6 @@ builder.Services.AddSwaggerGen(options =>
         });
 });
 
-// =====================================================
-// AZURE SQL
-// =====================================================
-
 var connectionString =
     builder.Configuration.GetConnectionString("AzureSql");
 
@@ -53,10 +44,12 @@ if (string.IsNullOrWhiteSpace(connectionString))
 }
 
 var sqlConnectionStringBuilder =
-    new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString)
-    {
-        MultiSubnetFailover = true
-    };
+    new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+
+if (!builder.Environment.IsDevelopment())
+{
+    sqlConnectionStringBuilder.MultiSubnetFailover = true;
+}
 
 builder.Services.AddDbContext<TaskDbContext>(options =>
 {
@@ -64,78 +57,57 @@ builder.Services.AddDbContext<TaskDbContext>(options =>
         sqlConnectionStringBuilder.ConnectionString,
         sqlOptions =>
         {
-            sqlOptions.MigrationsHistoryTable(
-                "__TaskMigrationsHistory");
-
+            sqlOptions.MigrationsHistoryTable("__TaskMigrationsHistory");
             sqlOptions.EnableRetryOnFailure();
         });
 });
 
-// =====================================================
-// JWT AUTHENTICATION
-// =====================================================
+builder.Services.AddTaskManagementJwtAuthentication(builder.Configuration);
+builder.Services.AddHttpContextAccessor();
 
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException(
-        "JWT key is not configured.");
+var projectServiceUrl =
+    builder.Configuration["ServiceUrls:Project"]
+    ?? "http://localhost:5012";
 
-var jwtIssuer = builder.Configuration["Jwt:Issuer"]
-    ?? throw new InvalidOperationException(
-        "JWT issuer is not configured.");
+builder.Services.AddHttpClient<IProjectAccessClient, ProjectAccessClient>(client =>
+{
+    client.BaseAddress = new Uri(projectServiceUrl);
+});
+builder.Services.AddScoped<TaskAuthorizationService>();
+builder.Services.AddScoped<ITaskAuditService, TaskAuditService>();
+builder.Services.AddScoped<ITaskRealtimeNotifier, TaskRealtimeNotifier>();
 
-var jwtAudience = builder.Configuration["Jwt:Audience"]
-    ?? throw new InvalidOperationException(
-        "JWT audience is not configured.");
+var notificationServiceUrl =
+    builder.Configuration["ServiceUrls:Notification"]
+    ?? "http://localhost:5290";
 
-builder.Services.AddAuthentication(
-    JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters =
-            new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-
-                IssuerSigningKey =
-                    new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtKey)),
-
-                ValidateIssuer = true,
-                ValidIssuer = jwtIssuer,
-
-                ValidateAudience = true,
-                ValidAudience = jwtAudience,
-
-                ValidateLifetime = true
-            };
-    });
-
-builder.Services.AddAuthorization();
-
-// =====================================================
-// CORS
-// =====================================================
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.BaseAddress = new Uri(notificationServiceUrl);
+});
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
         policy
-            .AllowAnyOrigin()
+            .WithOrigins(
+                "http://localhost:5173",
+                "http://localhost:5204")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
-// =====================================================
-// BUILD APPLICATION
-// =====================================================
-
 var app = builder.Build();
 
-// =====================================================
-// SWAGGER
-// =====================================================
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<TaskDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -143,21 +115,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// =====================================================
-// MIDDLEWARE
-// =====================================================
-
 app.UseHttpsRedirection();
-
 app.UseCors("FrontendPolicy");
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// =====================================================
-// CONTROLLERS
-// =====================================================
-
+app.MapTaskManagementHealth("task");
 app.MapControllers();
+app.MapHub<TaskHub>("/hubs/tasks");
 
 app.Run();

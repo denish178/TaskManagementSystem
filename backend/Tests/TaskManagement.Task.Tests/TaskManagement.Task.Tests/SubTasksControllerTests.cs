@@ -6,6 +6,8 @@ using TaskManagement.Task.Controllers;
 using TaskManagement.Task.Data;
 using TaskManagement.Task.DTOs;
 using TaskManagement.Task.Models;
+using TaskManagement.Task.Services;
+using Moq;
 using System.Linq;
 
 namespace TaskManagement.Task.Tests;
@@ -26,11 +28,21 @@ public class SubTasksControllerTests
         var identity = new ClaimsIdentity(
             new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.Role, "Admin"),
             },
             "TestAuth");
 
-        var controller = new SubTasksController(context);
+        var projectAccess = new Mock<IProjectAccessClient>();
+        projectAccess
+            .Setup(x => x.CanAccessProjectAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var controller = new SubTasksController(
+            context,
+            new TaskAuthorizationService(projectAccess.Object));
 
         controller.ControllerContext = new ControllerContext
         {
@@ -74,7 +86,7 @@ public class SubTasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var request = new CreateSubTaskRequest(
             "Test Subtask");
@@ -106,7 +118,7 @@ public class SubTasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var request = new CreateSubTaskRequest("   ");
 
@@ -125,7 +137,7 @@ public class SubTasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var request = new CreateSubTaskRequest(
             "Test Subtask");
@@ -151,7 +163,7 @@ public class SubTasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var request = new CreateSubTaskRequest(
             "   Test Subtask   ");
@@ -200,7 +212,7 @@ public class SubTasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetSubTasks(task.Id);
 
@@ -218,7 +230,7 @@ public class SubTasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetSubTasks(
             Guid.NewGuid());
@@ -255,7 +267,7 @@ public class SubTasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateSubTaskRequest(
             "Updated Subtask",
@@ -283,7 +295,7 @@ public class SubTasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateSubTaskRequest(
             "   ",
@@ -305,7 +317,7 @@ public class SubTasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateSubTaskRequest(
             "Updated",
@@ -348,7 +360,7 @@ public class SubTasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteSubTask(
             task.Id,
@@ -366,7 +378,7 @@ public class SubTasksControllerTests
     {
         using var context = CreateContext();
 
-        var controller = new SubTasksController(context);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteSubTask(
             Guid.NewGuid(),

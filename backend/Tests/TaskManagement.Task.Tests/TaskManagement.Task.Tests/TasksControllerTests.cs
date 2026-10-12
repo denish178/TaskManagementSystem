@@ -7,6 +7,9 @@ using TaskManagement.Task.Controllers;
 using TaskManagement.Task.Data;
 using TaskManagement.Task.DTOs;
 using TaskManagement.Task.Models;
+using TaskManagement.Task.Services;
+using Moq;
+using Microsoft.Extensions.Logging;
 
 namespace TaskManagement.Task.Tests;
 
@@ -26,11 +29,35 @@ public class TasksControllerTests
         var identity = new ClaimsIdentity(
             new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.Role, "Admin"),
             },
             "TestAuth");
 
-        var controller = new TasksController(context);
+        var projectAccess = new Mock<IProjectAccessClient>();
+        projectAccess
+            .Setup(x => x.CanAccessProjectAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        projectAccess
+            .Setup(x => x.GetAccessibleProjectIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var authorization = new TaskAuthorizationService(projectAccess.Object);
+        var notificationClient = new Mock<INotificationClient>();
+        var audit = new Mock<ITaskAuditService>();
+        var realtime = new Mock<ITaskRealtimeNotifier>();
+        var logger = new Mock<ILogger<TasksController>>();
+
+        var controller = new TasksController(
+            context,
+            projectAccess.Object,
+            authorization,
+            notificationClient.Object,
+            audit.Object,
+            realtime.Object,
+            logger.Object);
 
         controller.ControllerContext = new ControllerContext
         {

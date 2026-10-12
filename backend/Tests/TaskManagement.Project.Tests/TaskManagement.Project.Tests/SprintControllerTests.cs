@@ -5,6 +5,9 @@ using TaskManagement.Project.Data;
 using TaskManagement.Project.DTOs;
 using TaskManagement.Project.Models;
 using ProjectModel = TaskManagement.Project.Models.Project;
+using TaskManagement.Project.Services;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace TaskManagement.Project.Tests;
 
@@ -21,6 +24,29 @@ public class SprintControllerTests
             .Options;
 
         return new ProjectDbContext(options);
+    }
+
+    private static SprintsController CreateController(ProjectDbContext context)
+    {
+        var controller = new SprintsController(
+            context,
+            new ProjectAccessService(context));
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        [
+                            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                            new Claim(ClaimTypes.Role, "Admin"),
+                        ],
+                        "TestAuth")),
+            },
+        };
+
+        return controller;
     }
 
     // =========================================================
@@ -48,7 +74,7 @@ public class SprintControllerTests
         context.Projects.Add(project);
         await context.SaveChangesAsync();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         var startDate = DateTime.UtcNow.Date;
         var endDate = startDate.AddDays(14);
@@ -87,7 +113,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         var startDate = DateTime.UtcNow.Date;
         var endDate = startDate.AddDays(14);
@@ -113,7 +139,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         var startDate = DateTime.UtcNow.Date;
         var endDate = startDate.AddDays(14);
@@ -139,7 +165,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         var startDate = DateTime.UtcNow.Date.AddDays(10);
         var endDate = DateTime.UtcNow.Date;
@@ -165,7 +191,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         var startDate = DateTime.UtcNow.Date;
         var endDate = startDate.AddDays(14);
@@ -224,7 +250,7 @@ public class SprintControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -249,7 +275,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -300,7 +326,7 @@ public class SprintControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -324,7 +350,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -362,7 +388,7 @@ public class SprintControllerTests
         context.Sprints.Add(sprint);
         await context.SaveChangesAsync();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateSprintRequest(
             "Updated Sprint",
@@ -402,7 +428,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         var startDate = DateTime.UtcNow.Date;
 
@@ -428,7 +454,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         var startDate = DateTime.UtcNow.Date.AddDays(10);
         var endDate = DateTime.UtcNow.Date;
@@ -455,7 +481,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         var startDate = DateTime.UtcNow.Date;
 
@@ -503,7 +529,7 @@ public class SprintControllerTests
         context.Sprints.Add(sprint);
         await context.SaveChangesAsync();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -524,7 +550,7 @@ public class SprintControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new SprintsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =

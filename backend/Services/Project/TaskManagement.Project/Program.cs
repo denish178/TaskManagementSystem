@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.Project.Data;
+using TaskManagement.Project.Services;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using TaskManagement.Shared.Auth;
+using TaskManagement.Shared.Health;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,39 +53,8 @@ builder.Services.AddDbContext<ProjectDbContext>(options =>
             sqlOptions.EnableRetryOnFailure();
         });
 });
-// ----------------------------------------------------
-// JWT Authentication
-// ----------------------------------------------------
-
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("JWT key is not configured.");
-
-var jwtIssuer = builder.Configuration["Jwt:Issuer"]
-    ?? throw new InvalidOperationException("JWT issuer is not configured.");
-
-var jwtAudience = builder.Configuration["Jwt:Audience"]
-    ?? throw new InvalidOperationException("JWT audience is not configured.");
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey)),
-
-            ValidateIssuer = true,
-            ValidIssuer = jwtIssuer,
-
-            ValidateAudience = true,
-            ValidAudience = jwtAudience,
-
-            ValidateLifetime = true
-        };
-    });
-
-builder.Services.AddAuthorization();
+builder.Services.AddTaskManagementJwtAuthentication(builder.Configuration);
+builder.Services.AddScoped<ProjectAccessService>();
 
 // ----------------------------------------------------
 // CORS
@@ -108,6 +77,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ProjectDbContext>();
+    await db.Database.MigrateAsync();
+}
+
 // ----------------------------------------------------
 // Swagger
 // ----------------------------------------------------
@@ -129,6 +105,7 @@ app.UseCors("FrontendPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapTaskManagementHealth("project");
 app.MapControllers();
 
 app.Run();

@@ -1,20 +1,40 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.Project.Data;
 using TaskManagement.Project.DTOs;
 using TaskManagement.Project.Models;
+using TaskManagement.Project.Services;
 
 namespace TaskManagement.Project.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/sprints")]
 public class SprintsController : ControllerBase
 {
     private readonly ProjectDbContext _context;
+    private readonly ProjectAccessService _access;
 
-    public SprintsController(ProjectDbContext context)
+    public SprintsController(
+        ProjectDbContext context,
+        ProjectAccessService access)
     {
         _context = context;
+        _access = access;
+    }
+
+    private async Task<IActionResult?> RequireProjectAccessAsync(Guid projectId)
+    {
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessProjectAsync(userId, projectId, isAdmin))
+        {
+            return Forbid();
+        }
+
+        return null;
     }
 
     [HttpPost]
@@ -56,6 +76,12 @@ public class SprintsController : ControllerBase
             });
         }
 
+        var denied = await RequireProjectAccessAsync(request.ProjectId);
+        if (denied != null)
+        {
+            return denied;
+        }
+
         var sprint = new Sprint
         {
             Id = Guid.NewGuid(),
@@ -92,6 +118,12 @@ public class SprintsController : ControllerBase
             });
         }
 
+        var denied = await RequireProjectAccessAsync(projectId);
+        if (denied != null)
+        {
+            return denied;
+        }
+
         var sprints = await _context.Sprints
             .AsNoTracking()
             .Where(x => x.ProjectId == projectId)
@@ -116,6 +148,12 @@ public class SprintsController : ControllerBase
             {
                 message = "Sprint not found."
             });
+        }
+
+        var denied = await RequireProjectAccessAsync(sprint.ProjectId);
+        if (denied != null)
+        {
+            return denied;
         }
 
         return Ok(sprint);
@@ -153,6 +191,12 @@ public class SprintsController : ControllerBase
             });
         }
 
+        var denied = await RequireProjectAccessAsync(sprint.ProjectId);
+        if (denied != null)
+        {
+            return denied;
+        }
+
         sprint.Name = request.Name.Trim();
         sprint.Goal = request.Goal;
         sprint.StartDate = request.StartDate;
@@ -176,6 +220,12 @@ public class SprintsController : ControllerBase
             {
                 message = "Sprint not found."
             });
+        }
+
+        var denied = await RequireProjectAccessAsync(sprint.ProjectId);
+        if (denied != null)
+        {
+            return denied;
         }
 
         _context.Sprints.Remove(sprint);

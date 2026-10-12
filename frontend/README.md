@@ -11,7 +11,7 @@ Production-oriented React client for the Task Management System. All API calls g
 ## Setup
 
 ```bash
-cd frontend/task-management-ui
+cd frontend
 cp .env.example .env
 npm install
 ```
@@ -71,5 +71,5 @@ Or: `dotnet user-secrets set "Gemini:ApiKey" "your-key" --project backend/Servic
 See [docs/LOCAL_DEVELOPMENT.md](../../docs/LOCAL_DEVELOPMENT.md) for Docker-based SQL/Mongo, seeded dev users, and service ports.
 
 1. Start infrastructure (`docker compose -f docker-compose.dev.yml up -d`) and all Gateway-backed services in **Development**.
-2. Run `npm run dev` and sign in (e.g. `admin@local.test` / `Admin1234!` when using the dev seeder).
+2. Run `npm run dev` and sign in with `admin@local.test` and the password from repo-root `.env` (`TMS_DEV_ADMIN_PASSWORD`).
 3. Optional Gateway smoke test: `powershell -File scripts/e2e-gateway.ps1` (requires all services running).

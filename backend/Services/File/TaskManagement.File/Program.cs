@@ -1,45 +1,17 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.File;
 using TaskManagement.File.Data;
 using TaskManagement.File.Interfaces;
 using TaskManagement.File.Services;
 using Microsoft.OpenApi;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using TaskManagement.Shared.Auth;
+using TaskManagement.Shared.Health;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("JWT key is not configured.");
-
-var jwtIssuer = builder.Configuration["Jwt:Issuer"]
-    ?? throw new InvalidOperationException("JWT issuer is not configured.");
-
-var jwtAudience = builder.Configuration["Jwt:Audience"]
-    ?? throw new InvalidOperationException("JWT audience is not configured.");
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey))
-        };
-    });
-
-builder.Services.AddAuthorization();
+builder.Services.AddTaskManagementJwtAuthentication(builder.Configuration);
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -67,15 +39,47 @@ builder.Services.AddSwaggerGen(options =>
 // Database
 builder.Services.AddDbContext<FileDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("FileDb")));
+        builder.Configuration.GetConnectionString("FileDb"),
+        sql => sql.EnableRetryOnFailure()));
 
-// Azure Blob
 builder.Services.Configure<AzureBlobSettings>(
     builder.Configuration.GetSection("AzureBlobStorage"));
+builder.Services.Configure<LocalFileStorageSettings>(
+    builder.Configuration.GetSection("LocalFileStorage"));
 
-builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
+var storageMode = builder.Configuration["FileStorage:Mode"] ?? "Azure";
+var blobConnection = builder.Configuration["AzureBlobStorage:ConnectionString"];
+
+if (builder.Environment.IsDevelopment()
+    && (storageMode.Equals("Local", StringComparison.OrdinalIgnoreCase)
+        || string.IsNullOrWhiteSpace(blobConnection)))
+{
+    builder.Services.AddSingleton<IBlobStorageService, LocalBlobStorageService>();
+}
+else
+{
+    builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
+}
+
+builder.Services.AddHttpContextAccessor();
+
+var taskServiceUrl =
+    builder.Configuration["ServiceUrls:Task"]
+    ?? "http://localhost:5266";
+
+builder.Services.AddHttpClient<ITaskAccessClient, TaskAccessClient>(client =>
+{
+    client.BaseAddress = new Uri(taskServiceUrl);
+});
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<FileDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -85,6 +89,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapTaskManagementHealth("file");
 app.MapControllers();
 
 app.Run();

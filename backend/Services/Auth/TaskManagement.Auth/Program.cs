@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using System.Text;
+using TaskManagement.Auth;
 using TaskManagement.Auth.Data;
+using TaskManagement.Shared.Auth;
+using TaskManagement.Shared.Health;
+using TaskManagement.Shared.RateLimiting;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,10 +17,12 @@ var authConnectionString =
         "Auth database connection string is not configured.");
 
 var sqlConnectionStringBuilder =
-    new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(authConnectionString)
-    {
-        MultiSubnetFailover = true
-    };
+    new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(authConnectionString);
+
+if (!builder.Environment.IsDevelopment())
+{
+    sqlConnectionStringBuilder.MultiSubnetFailover = true;
+}
 
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(
@@ -29,34 +32,8 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
             sqlOptions.EnableRetryOnFailure();
         }));
 
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("JWT Key is not configured.");
-
-var jwtIssuer = builder.Configuration["Jwt:Issuer"]
-    ?? throw new InvalidOperationException("JWT Issuer is not configured.");
-
-var jwtAudience = builder.Configuration["Jwt:Audience"]
-    ?? throw new InvalidOperationException("JWT Audience is not configured.");
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey))
-        };
-    });
-
-builder.Services.AddAuthorization();
+builder.Services.AddTaskManagementJwtAuthentication(builder.Configuration);
+builder.Services.AddTaskManagementRateLimiting();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -80,15 +57,18 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    await DevelopmentDataSeeder.SeedAsync(app.Services);
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
+app.UseTaskManagementRateLimiting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapTaskManagementHealth("auth");
 app.MapControllers();
 
 app.Run();

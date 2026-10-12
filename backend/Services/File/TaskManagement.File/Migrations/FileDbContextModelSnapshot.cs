@@ -45,14 +45,14 @@ namespace TaskManagement.File.Migrations
                     b.Property<long>("FileSize")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("TaskId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("UploadedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UploadedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 

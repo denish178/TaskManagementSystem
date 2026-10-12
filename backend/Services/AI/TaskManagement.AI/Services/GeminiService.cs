@@ -16,18 +16,15 @@ public class GeminiService
     {
         _httpClient = httpClient;
 
-        _apiKey =
-            configuration["Gemini:ApiKey"]
-            ?? throw new InvalidOperationException(
-                "Gemini API key is not configured.");
+        _apiKey = configuration["Gemini:ApiKey"] ?? "";
 
         _model =
             configuration["Gemini:Model"]
-            ?? "gemini-3.8-flash";
+            ?? "gemini-3.6-flash";
 
         _fallbackModel =
             configuration["Gemini:FallbackModel"]
-            ?? "gemini-3.7-flash";
+            ?? "gemini-3.1-flash-lite";
     }
 
     public async Task<string> AskAsync(
@@ -39,6 +36,12 @@ public class GeminiService
             throw new ArgumentException(
                 "Question cannot be empty.",
                 nameof(question));
+        }
+
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            throw new InvalidOperationException(
+                "Gemini API key is not configured. Set Gemini:ApiKey in user secrets or the Gemini__ApiKey environment variable.");
         }
 
         var prompt = $"""
@@ -64,11 +67,17 @@ public class GeminiService
             6. You may calculate simple statistics from the supplied data.
             7. Keep answers clear and concise.
             8. Use bullet points when listing multiple items.
-            9. If only a UserId or AssigneeId is available,
-               show the ID instead of inventing a person's name.
-            10. The task statuses used by this system are:
-                Todo, InProgress, Review, Done.
-            11. Do not use information from outside the supplied database context.
+            9. The JSON includes CurrentUser (UserId, Email, Name, Role).
+               When the user says "I", "me", "my", or "mine", interpret that as
+               CurrentUser.UserId: match Tasks where AssigneeId or CreatedBy equals
+               that id unless they clearly mean something else.
+            10. For the current user you may use CurrentUser.Name or Email in answers.
+                For other people, only use AssigneeId/CreatedBy ids from the data;
+                do not invent names.
+            11. The task statuses used by this system are:
+                Todo, InProgress, Testing, Done.
+                "Completed" usually means Status is Done.
+            12. Do not use information from outside the supplied database context.
             """;
 
         var requestBody = new
@@ -94,29 +103,33 @@ public class GeminiService
 
         var json = JsonSerializer.Serialize(requestBody);
 
-        // First try the configured model.
+        // First try the configured model, then fallback (overload or retired id).
         try
         {
-            return await SendToGeminiAsync(
-                _model,
-                json);
+            return await SendToGeminiAsync(_model, json);
         }
-        catch (GeminiTemporaryException)
+        catch (Exception ex) when (ShouldTryFallbackModel(ex))
         {
-            // If the primary model is temporarily unavailable,
-            // try the fallback model.
-            if (!string.Equals(
-                    _model,
-                    _fallbackModel,
-                    StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(_model, _fallbackModel, StringComparison.OrdinalIgnoreCase))
             {
-                return await SendToGeminiAsync(
-                    _fallbackModel,
-                    json);
+                throw;
             }
 
-            throw;
+            return await SendToGeminiAsync(_fallbackModel, json);
         }
+    }
+
+    private static bool ShouldTryFallbackModel(Exception ex)
+    {
+        if (ex is GeminiTemporaryException)
+        {
+            return true;
+        }
+
+        var text = ex.Message;
+        return text.Contains("404", StringComparison.Ordinal)
+            || text.Contains("NOT_FOUND", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("is not found", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<string> SendToGeminiAsync(
