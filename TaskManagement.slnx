@@ -1,0 +1,50 @@
+<Solution>
+  <Folder Name="/backend/Gateway/">
+    <Project Path="backend/Gateway/TaskManagement.Gateway/TaskManagement.Gateway.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Services/" />
+
+  <Folder Name="/backend/Services/Auth/">
+    <Project Path="backend/Services/Auth/TaskManagement.Auth/TaskManagement.Auth.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Services/Comment/">
+    <Project Path="backend/Services/Comment/TaskManagement.Comment/TaskManagement.Comment.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Services/Dashboard/">
+    <Project Path="backend/Services/Dashboard/TaskManagement.Dashboard/TaskManagement.Dashboard.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Services/File/">
+    <Project Path="backend/Services/File/TaskManagement.File/TaskManagement.File.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Services/Project/">
+    <Project Path="backend/Services/Project/TaskManagement.Project/TaskManagement.Project.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Services/Task/">
+    <Project Path="backend/Services/Task/TaskManagement.Task/TaskManagement.Task.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Services/AI/">
+    <Project Path="backend/Services/AI/TaskManagement.AI/TaskManagement.AI.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Services/Notification/">
+    <Project Path="backend/Services/Notification/TaskManagement.Notification/TaskManagement.Notification.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Shared/">
+    <Project Path="backend/Shared/TaskManagement.Shared/TaskManagement.Shared.csproj" />
+  </Folder>
+
+  <Folder Name="/backend/Tests/">
+    <Project Path="backend/Tests/TaskManagement.Dashboard.Tests/TaskManagement.Dashboard.Tests.csproj" />
+    <Project Path="backend/Tests/TaskManagement.File.Tests/TaskManagement.File.Tests.csproj" />
+    <Project Path="backend/Tests/TaskManagement.Project.Tests/TaskManagement.Project.Tests.csproj" />
+    <Project Path="backend/Tests/TaskManagement.Task.Tests/TaskManagement.Task.Tests.csproj" />
+  </Folder>
+</Solution>

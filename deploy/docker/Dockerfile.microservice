@@ -1,4 +1,4 @@
-# Build: docker build -f backend/Dockerfile.microservice --build-arg PROJECT_PATH=... --build-arg ASSEMBLY_NAME=... -t tms-service .
+# Build (from repo root): docker build -f deploy/docker/Dockerfile.microservice --build-arg PROJECT_PATH=... --build-arg ASSEMBLY_NAME=... -t tms-service .
 ARG PROJECT_PATH
 ARG ASSEMBLY_NAME
 

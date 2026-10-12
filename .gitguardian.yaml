@@ -1,5 +1,5 @@
 # Dev-only tooling: secrets come from gitignored .env (see .env.example).
 paths-ignore:
   - scripts/
-  - docker-compose.apps.yml
-  - docker-compose.dev.yml
+  - deploy/docker/docker-compose.apps.yml
+  - deploy/docker/docker-compose.dev.yml

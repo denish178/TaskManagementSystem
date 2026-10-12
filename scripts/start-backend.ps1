@@ -37,7 +37,7 @@ New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
 $waitSql = Join-Path $PSScriptRoot "wait-sql.ps1"
 if (Test-Path $waitSql) {
-  Write-Host "Waiting for SQL Server on port 1433 (start docker-compose.dev.yml if this hangs)..."
+  Write-Host "Waiting for SQL Server on port 1433 (start deploy/docker/docker-compose.dev.yml if this hangs)..."
   & $waitSql
 }
 
@@ -68,7 +68,7 @@ $services = @(
 
 if (-not $SkipBuild) {
   Write-Host "Building solution..."
-  dotnet build (Join-Path $Root "backend\TaskManagement.slnx") -v minimal
+  dotnet build (Join-Path $Root "TaskManagement.slnx") -v minimal
 }
 
 $pids = @()

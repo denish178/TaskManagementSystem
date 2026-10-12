@@ -11,7 +11,7 @@ Set-Location $Root
 
 if (-not $BackendOnly) {
   Write-Host "Starting Docker infrastructure (SQL Server + MongoDB)..."
-  docker compose -f docker-compose.dev.yml up -d
+  docker compose --project-directory $Root -f (Join-Path $Root "deploy/docker/docker-compose.dev.yml") up -d
   & (Join-Path $PSScriptRoot "wait-sql.ps1")
 }
 

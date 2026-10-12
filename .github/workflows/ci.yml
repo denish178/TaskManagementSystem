@@ -15,7 +15,7 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - name: Restore and test
-        run: dotnet test backend/TaskManagement.slnx -c Release --verbosity minimal
+        run: dotnet test TaskManagement.slnx -c Release --verbosity minimal
 
   frontend:
     runs-on: ubuntu-latest

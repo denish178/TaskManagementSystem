@@ -1,13 +1,13 @@
 # Full stack: SQL + Mongo + all .NET microservices (optional; heavier than scripts/start-backend.ps1).
 # Usage:
-#   docker compose -f docker-compose.dev.yml -f docker-compose.apps.yml up --build -d
+#   docker compose --project-directory . -f deploy/docker/docker-compose.dev.yml -f deploy/docker/docker-compose.apps.yml up --build -d
 #   Gateway: http://localhost:5204/health
 
 services:
   auth:
     build:
       context: .
-      dockerfile: backend/Dockerfile.microservice
+      dockerfile: deploy/docker/Dockerfile.microservice
       args:
         PROJECT_PATH: backend/Services/Auth/TaskManagement.Auth/TaskManagement.Auth.csproj
         ASSEMBLY_NAME: TaskManagement.Auth
@@ -26,7 +26,7 @@ services:
   project:
     build:
       context: .
-      dockerfile: backend/Dockerfile.microservice
+      dockerfile: deploy/docker/Dockerfile.microservice
       args:
         PROJECT_PATH: backend/Services/Project/TaskManagement.Project/TaskManagement.Project.csproj
         ASSEMBLY_NAME: TaskManagement.Project
@@ -45,7 +45,7 @@ services:
   notification:
     build:
       context: .
-      dockerfile: backend/Dockerfile.microservice
+      dockerfile: deploy/docker/Dockerfile.microservice
       args:
         PROJECT_PATH: backend/Services/Notification/TaskManagement.Notification/TaskManagement.Notification.csproj
         ASSEMBLY_NAME: TaskManagement.Notification
@@ -67,7 +67,7 @@ services:
   task:
     build:
       context: .
-      dockerfile: backend/Dockerfile.microservice
+      dockerfile: deploy/docker/Dockerfile.microservice
       args:
         PROJECT_PATH: backend/Services/Task/TaskManagement.Task/TaskManagement.Task.csproj
         ASSEMBLY_NAME: TaskManagement.Task
@@ -91,7 +91,7 @@ services:
   comment:
     build:
       context: .
-      dockerfile: backend/Dockerfile.microservice
+      dockerfile: deploy/docker/Dockerfile.microservice
       args:
         PROJECT_PATH: backend/Services/Comment/TaskManagement.Comment/TaskManagement.Comment.csproj
         ASSEMBLY_NAME: TaskManagement.Comment
@@ -112,7 +112,7 @@ services:
   file:
     build:
       context: .
-      dockerfile: backend/Dockerfile.microservice
+      dockerfile: deploy/docker/Dockerfile.microservice
       args:
         PROJECT_PATH: backend/Services/File/TaskManagement.File/TaskManagement.File.csproj
         ASSEMBLY_NAME: TaskManagement.File
@@ -134,7 +134,7 @@ services:
   dashboard:
     build:
       context: .
-      dockerfile: backend/Dockerfile.microservice
+      dockerfile: deploy/docker/Dockerfile.microservice
       args:
         PROJECT_PATH: backend/Services/Dashboard/TaskManagement.Dashboard/TaskManagement.Dashboard.csproj
         ASSEMBLY_NAME: TaskManagement.Dashboard
@@ -152,7 +152,7 @@ services:
   ai:
     build:
       context: .
-      dockerfile: backend/Dockerfile.microservice
+      dockerfile: deploy/docker/Dockerfile.microservice
       args:
         PROJECT_PATH: backend/Services/AI/TaskManagement.AI/TaskManagement.AI.csproj
         ASSEMBLY_NAME: TaskManagement.AI
@@ -173,7 +173,7 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: backend/Dockerfile.microservice
+      dockerfile: deploy/docker/Dockerfile.microservice
       args:
         PROJECT_PATH: backend/Gateway/TaskManagement.Gateway/TaskManagement.Gateway.csproj
         ASSEMBLY_NAME: TaskManagement.Gateway
