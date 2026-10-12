@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using TaskManagement.Comment.DTOs;
 using CommentModel = TaskManagement.Comment.Models.Comment;
+using TaskManagement.Comment.Hubs;
 using TaskManagement.Comment.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
@@ -13,16 +15,22 @@ namespace TaskManagement.Comment.Controllers;
 public class CommentsController : ControllerBase
 {
     private readonly CommentRepository _repository;
+    private readonly IHubContext<CommentHub> _hub;
 
-    public CommentsController(CommentRepository repository)
+    public CommentsController(
+        CommentRepository repository,
+        IHubContext<CommentHub> hub)
     {
         _repository = repository;
+        _hub = hub;
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(CreateCommentRequest request)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdClaim =
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
 
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
@@ -40,6 +48,10 @@ public class CommentsController : ControllerBase
         };
 
         var createdComment = await _repository.CreateAsync(comment);
+
+        await _hub.Clients
+            .Group(CommentHub.TaskGroup(request.TaskId))
+            .SendAsync("CommentAdded", createdComment);
 
         return CreatedAtAction(
             nameof(GetById),
@@ -71,7 +83,9 @@ public class CommentsController : ControllerBase
     Guid commentId,
     UpdateCommentRequest request)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdClaim =
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
 
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
@@ -101,7 +115,9 @@ public class CommentsController : ControllerBase
     [HttpDelete("{commentId:guid}")]
     public async Task<IActionResult> Delete(Guid commentId)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdClaim =
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
 
         if (!Guid.TryParse(userIdClaim, out var userId))
         {

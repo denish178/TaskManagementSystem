@@ -1,0 +1,197 @@
+# Full stack: SQL + Mongo + all .NET microservices (optional; heavier than scripts/start-backend.ps1).
+# Usage:
+#   docker compose -f docker-compose.dev.yml -f docker-compose.apps.yml up --build -d
+#   Gateway: http://localhost:5204/health
+
+services:
+  auth:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microservice
+      args:
+        PROJECT_PATH: backend/Services/Auth/TaskManagement.Auth/TaskManagement.Auth.csproj
+        ASSEMBLY_NAME: TaskManagement.Auth
+    environment:
+      Jwt__Key: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: TaskManagement.Auth
+      Jwt__Audience: TaskManagementSystem
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__AuthDatabase: "Server=sqlserver,1433;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;Database=TMS_Auth"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    ports:
+      - "5007:8080"
+
+  project:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microservice
+      args:
+        PROJECT_PATH: backend/Services/Project/TaskManagement.Project/TaskManagement.Project.csproj
+        ASSEMBLY_NAME: TaskManagement.Project
+    environment:
+      Jwt__Key: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: TaskManagement.Auth
+      Jwt__Audience: TaskManagementSystem
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__AzureSql: "Server=sqlserver,1433;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;Database=TMS_Project"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    ports:
+      - "5012:8080"
+
+  notification:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microservice
+      args:
+        PROJECT_PATH: backend/Services/Notification/TaskManagement.Notification/TaskManagement.Notification.csproj
+        ASSEMBLY_NAME: TaskManagement.Notification
+    environment:
+      Jwt__Key: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: TaskManagement.Auth
+      Jwt__Audience: TaskManagementSystem
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__NotificationDatabase: "Server=sqlserver,1433;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;Database=TMS_Notification"
+      SignalR__Redis__Configuration: redis:6379
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "5290:8080"
+
+  task:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microservice
+      args:
+        PROJECT_PATH: backend/Services/Task/TaskManagement.Task/TaskManagement.Task.csproj
+        ASSEMBLY_NAME: TaskManagement.Task
+    environment:
+      Jwt__Key: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: TaskManagement.Auth
+      Jwt__Audience: TaskManagementSystem
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__AzureSql: "Server=sqlserver,1433;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;Database=TMS_Task"
+      ServiceUrls__Project: http://project:8080
+      ServiceUrls__Notification: http://notification:8080
+      SignalR__Redis__Configuration: redis:6379
+    depends_on:
+      redis:
+        condition: service_started
+      - project
+      - notification
+    ports:
+      - "5266:8080"
+
+  comment:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microservice
+      args:
+        PROJECT_PATH: backend/Services/Comment/TaskManagement.Comment/TaskManagement.Comment.csproj
+        ASSEMBLY_NAME: TaskManagement.Comment
+    environment:
+      Jwt__Key: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: TaskManagement.Auth
+      Jwt__Audience: TaskManagementSystem
+      ASPNETCORE_ENVIRONMENT: Development
+      MongoDb__ConnectionString: mongodb://mongodb:27017
+      MongoDb__DatabaseName: TMS_Comments
+      SignalR__Redis__Configuration: redis:6379
+    depends_on:
+      - mongodb
+      - redis
+    ports:
+      - "5260:8080"
+
+  file:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microservice
+      args:
+        PROJECT_PATH: backend/Services/File/TaskManagement.File/TaskManagement.File.csproj
+        ASSEMBLY_NAME: TaskManagement.File
+    environment:
+      Jwt__Key: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: TaskManagement.Auth
+      Jwt__Audience: TaskManagementSystem
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__FileDb: "Server=sqlserver,1433;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;Database=TMS_File"
+      ServiceUrls__Task: http://task:8080
+      FileStorage__Mode: Local
+    volumes:
+      - tms-file-uploads:/app/App_Data/uploads
+    depends_on:
+      - task
+    ports:
+      - "5144:8080"
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microservice
+      args:
+        PROJECT_PATH: backend/Services/Dashboard/TaskManagement.Dashboard/TaskManagement.Dashboard.csproj
+        ASSEMBLY_NAME: TaskManagement.Dashboard
+    environment:
+      Jwt__Key: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: TaskManagement.Auth
+      Jwt__Audience: TaskManagementSystem
+      ASPNETCORE_ENVIRONMENT: Development
+      ServiceUrls__Task: http://task:8080
+    depends_on:
+      - task
+    ports:
+      - "5209:8080"
+
+  ai:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microservice
+      args:
+        PROJECT_PATH: backend/Services/AI/TaskManagement.AI/TaskManagement.AI.csproj
+        ASSEMBLY_NAME: TaskManagement.AI
+    environment:
+      Jwt__Key: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: TaskManagement.Auth
+      Jwt__Audience: TaskManagementSystem
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__ProjectDatabase: "Server=sqlserver,1433;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;Database=TMS_Project"
+      ConnectionStrings__TaskDatabase: "Server=sqlserver,1433;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;Database=TMS_Task"
+      Gemini__ApiKey: ${GEMINI_API_KEY:-}
+    depends_on:
+      - project
+      - task
+    ports:
+      - "5287:8080"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.microservice
+      args:
+        PROJECT_PATH: backend/Gateway/TaskManagement.Gateway/TaskManagement.Gateway.csproj
+        ASSEMBLY_NAME: TaskManagement.Gateway
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    volumes:
+      - ./backend/Gateway/TaskManagement.Gateway/ocelot.docker.json:/app/ocelot.json:ro
+    depends_on:
+      - auth
+      - project
+      - task
+      - comment
+      - file
+      - dashboard
+      - notification
+      - ai
+    ports:
+      - "5204:8080"
+
+volumes:
+  tms-file-uploads:

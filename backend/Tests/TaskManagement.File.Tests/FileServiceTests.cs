@@ -6,11 +6,18 @@ using TaskManagement.File.Controllers;
 using TaskManagement.File.Data;
 using TaskManagement.File.Interfaces;
 using TaskManagement.File.Models;
-
+using TaskManagement.File.Services;
+using System.Security.Claims;
 namespace TaskManagement.File.Tests;
 
 public class FileServiceTests
 {
+    private static readonly Guid SampleTaskId =
+        Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    private static readonly Guid SampleUserId =
+        Guid.Parse("22222222-2222-2222-2222-222222222222");
+
     private static FileDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<FileDbContext>()
@@ -18,6 +25,40 @@ public class FileServiceTests
             .Options;
 
         return new FileDbContext(options);
+    }
+
+    private static FilesController CreateController(
+        IBlobStorageService blobService,
+        FileDbContext dbContext,
+        ITaskAccessClient? taskAccess = null)
+    {
+        var access = taskAccess ?? CreateTaskAccessMock().Object;
+        var controller = new FilesController(blobService, dbContext, access);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        [
+                            new Claim(ClaimTypes.NameIdentifier, SampleUserId.ToString()),
+                            new Claim(ClaimTypes.Role, "Admin"),
+                        ],
+                        "TestAuth")),
+            },
+        };
+        return controller;
+    }
+
+    private static Mock<ITaskAccessClient> CreateTaskAccessMock()
+    {
+        var mock = new Mock<ITaskAccessClient>();
+        mock
+            .Setup(x => x.CanAccessTaskAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        return mock;
     }
 
     private static IFormFile CreateFile(
@@ -39,27 +80,22 @@ public class FileServiceTests
     [Fact]
     public async Task Upload_WithInvalidExtension_ReturnsBadRequest()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
 
         var blobService = new Mock<IBlobStorageService>();
 
-        var controller = new FilesController(
-            blobService.Object,
-            dbContext);
+        var controller = CreateController(blobService.Object, dbContext);
 
         var file = CreateFile(
             "malicious.exe",
             "fake executable",
             "application/octet-stream");
 
-        // Act
         var result = await controller.Upload(
             file,
-            taskId: 1,
-            uploadedBy: 100);
+            taskId: SampleTaskId,
+            uploadedBy: SampleUserId);
 
-        // Assert
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
 
         Assert.Contains(
@@ -77,14 +113,11 @@ public class FileServiceTests
     [Fact]
     public async Task Upload_WithEmptyFile_ReturnsBadRequest()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
 
         var blobService = new Mock<IBlobStorageService>();
 
-        var controller = new FilesController(
-            blobService.Object,
-            dbContext);
+        var controller = CreateController(blobService.Object, dbContext);
 
         var emptyStream = new MemoryStream();
 
@@ -95,18 +128,16 @@ public class FileServiceTests
             "file",
             "empty.txt");
 
-        // Act
         var result = await controller.Upload(
             file,
-            taskId: 1,
-            uploadedBy: 100);
+            taskId: SampleTaskId,
+            uploadedBy: SampleUserId);
 
-        // Assert
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
 
-        Assert.Equal(
+        Assert.Contains(
             "File is required.",
-            badRequest.Value);
+            badRequest.Value?.ToString());
 
         blobService.Verify(
             x => x.UploadAsync(
@@ -119,7 +150,6 @@ public class FileServiceTests
     [Fact]
     public async Task Upload_WithValidFile_ReturnsOkAndSavesMetadata()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
 
         var blobService = new Mock<IBlobStorageService>();
@@ -131,29 +161,25 @@ public class FileServiceTests
                 It.IsAny<string>()))
             .ReturnsAsync("test-blob.txt");
 
-        var controller = new FilesController(
-            blobService.Object,
-            dbContext);
+        var controller = CreateController(blobService.Object, dbContext);
 
         var file = CreateFile(
             "test.txt",
             "Hello testing",
             "text/plain");
 
-        // Act
         var result = await controller.Upload(
             file,
-            taskId: 10,
-            uploadedBy: 100);
+            taskId: SampleTaskId,
+            uploadedBy: SampleUserId);
 
-        // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
 
         var attachment =
             Assert.IsType<Attachment>(okResult.Value);
 
-        Assert.Equal(10, attachment.TaskId);
-        Assert.Equal(100, attachment.UploadedBy);
+        Assert.Equal(SampleTaskId, attachment.TaskId);
+        Assert.Equal(SampleUserId, attachment.UploadedBy);
         Assert.Equal("test.txt", attachment.FileName);
         Assert.Equal("test-blob.txt", attachment.BlobName);
         Assert.Equal("text/plain", attachment.ContentType);
@@ -174,41 +200,35 @@ public class FileServiceTests
     [Fact]
     public async Task GetById_WhenAttachmentDoesNotExist_ReturnsNotFound()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
 
         var blobService = new Mock<IBlobStorageService>();
 
-        var controller = new FilesController(
-            blobService.Object,
-            dbContext);
+        var controller = CreateController(blobService.Object, dbContext);
 
-        // Act
         var result = await controller.GetById(999);
 
-        // Assert
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
 
-        Assert.Equal(
+        Assert.Contains(
             "Attachment not found.",
-            notFound.Value);
+            notFound.Value?.ToString());
     }
 
     [Fact]
     public async Task GetById_WhenAttachmentExists_ReturnsOk()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
 
         dbContext.Attachments.Add(new Attachment
         {
             Id = 1,
-            TaskId = 10,
+            TaskId = SampleTaskId,
             FileName = "test.txt",
             BlobName = "blob-test.txt",
             ContentType = "text/plain",
             FileSize = 100,
-            UploadedBy = 100,
+            UploadedBy = SampleUserId,
             UploadedAt = DateTime.UtcNow
         });
 
@@ -216,14 +236,10 @@ public class FileServiceTests
 
         var blobService = new Mock<IBlobStorageService>();
 
-        var controller = new FilesController(
-            blobService.Object,
-            dbContext);
+        var controller = CreateController(blobService.Object, dbContext);
 
-        // Act
         var result = await controller.GetById(1);
 
-        // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
 
         var attachment =
@@ -236,19 +252,14 @@ public class FileServiceTests
     [Fact]
     public async Task Delete_WhenAttachmentDoesNotExist_ReturnsNotFound()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
 
         var blobService = new Mock<IBlobStorageService>();
 
-        var controller = new FilesController(
-            blobService.Object,
-            dbContext);
+        var controller = CreateController(blobService.Object, dbContext);
 
-        // Act
         var result = await controller.Delete(999);
 
-        // Assert
         Assert.IsType<NotFoundObjectResult>(result);
 
         blobService.Verify(
@@ -259,18 +270,17 @@ public class FileServiceTests
     [Fact]
     public async Task Delete_WhenAttachmentExists_DeletesBlobAndMetadata()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
 
         dbContext.Attachments.Add(new Attachment
         {
             Id = 1,
-            TaskId = 10,
+            TaskId = SampleTaskId,
             FileName = "test.txt",
             BlobName = "blob-test.txt",
             ContentType = "text/plain",
             FileSize = 100,
-            UploadedBy = 100,
+            UploadedBy = SampleUserId,
             UploadedAt = DateTime.UtcNow
         });
 
@@ -278,14 +288,10 @@ public class FileServiceTests
 
         var blobService = new Mock<IBlobStorageService>();
 
-        var controller = new FilesController(
-            blobService.Object,
-            dbContext);
+        var controller = CreateController(blobService.Object, dbContext);
 
-        // Act
         var result = await controller.Delete(1);
 
-        // Assert
         Assert.IsType<NoContentResult>(result);
 
         blobService.Verify(

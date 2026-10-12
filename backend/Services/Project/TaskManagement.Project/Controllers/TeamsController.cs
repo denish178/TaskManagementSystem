@@ -1,20 +1,27 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.Project.Data;
 using TaskManagement.Project.DTOs;
 using TaskManagement.Project.Models;
+using TaskManagement.Project.Services;
 
 namespace TaskManagement.Project.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/teams")]
 public class TeamsController : ControllerBase
 {
     private readonly ProjectDbContext _context;
+    private readonly ProjectAccessService _access;
 
-    public TeamsController(ProjectDbContext context)
+    public TeamsController(
+        ProjectDbContext context,
+        ProjectAccessService access)
     {
         _context = context;
+        _access = access;
     }
 
     [HttpPost]
@@ -29,16 +36,27 @@ public class TeamsController : ControllerBase
             });
         }
 
+        var userId = ProjectAccessService.GetUserId(User);
+
         var team = new Team
         {
             Id = Guid.NewGuid(),
             Name = request.Name.Trim(),
             Description = request.Description,
-            CreatedBy = request.CreatedBy,
+            CreatedBy = request.CreatedBy == Guid.Empty ? userId : request.CreatedBy,
             CreatedAt = DateTime.UtcNow
         };
 
         _context.Teams.Add(team);
+
+        _context.TeamMembers.Add(new TeamMember
+        {
+            Id = Guid.NewGuid(),
+            TeamId = team.Id,
+            UserId = userId,
+            Role = "Owner",
+            JoinedAt = DateTime.UtcNow
+        });
 
         await _context.SaveChangesAsync();
 
@@ -51,8 +69,13 @@ public class TeamsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetTeams()
     {
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+        var accessibleTeamIds = await _access.GetAccessibleTeamIdsAsync(userId, isAdmin);
+
         var teams = await _context.Teams
             .AsNoTracking()
+            .Where(team => accessibleTeamIds.Contains(team.Id))
             .Select(team => new
             {
                 team.Id,
@@ -85,6 +108,14 @@ public class TeamsController : ControllerBase
             });
         }
 
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessTeamAsync(userId, teamId, isAdmin))
+        {
+            return Forbid();
+        }
+
         return Ok(team);
     }
 
@@ -112,6 +143,14 @@ public class TeamsController : ControllerBase
             });
         }
 
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessTeamAsync(userId, teamId, isAdmin))
+        {
+            return Forbid();
+        }
+
         team.Name = request.Name.Trim();
         team.Description = request.Description;
 
@@ -132,6 +171,14 @@ public class TeamsController : ControllerBase
             {
                 message = "Team not found."
             });
+        }
+
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessTeamAsync(userId, teamId, isAdmin))
+        {
+            return Forbid();
         }
 
         _context.Teams.Remove(team);
@@ -155,6 +202,14 @@ public class TeamsController : ControllerBase
             {
                 message = "Team not found."
             });
+        }
+
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessTeamAsync(userId, teamId, isAdmin))
+        {
+            return Forbid();
         }
 
         if (request.UserId == Guid.Empty)
@@ -210,6 +265,14 @@ public class TeamsController : ControllerBase
             });
         }
 
+        var currentUserId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessTeamAsync(currentUserId, teamId, isAdmin))
+        {
+            return Forbid();
+        }
+
         var members = await _context.TeamMembers
             .AsNoTracking()
             .Where(x => x.TeamId == teamId)
@@ -234,6 +297,14 @@ public class TeamsController : ControllerBase
             {
                 message = "Team member not found."
             });
+        }
+
+        var currentUserId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessTeamAsync(currentUserId, teamId, isAdmin))
+        {
+            return Forbid();
         }
 
         _context.TeamMembers.Remove(member);

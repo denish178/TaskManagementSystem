@@ -5,7 +5,7 @@ using TaskManagement.Project.DTOs;
 using TaskManagement.Project.Models;
 using ProjectModel = TaskManagement.Project.Models.Project;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
+using TaskManagement.Project.Services;
 
 namespace TaskManagement.Project.Controllers;
 
@@ -15,10 +15,47 @@ namespace TaskManagement.Project.Controllers;
 public class ProjectsController : ControllerBase
 {
     private readonly ProjectDbContext _context;
+    private readonly ProjectAccessService _access;
 
-    public ProjectsController(ProjectDbContext context)
+    public ProjectsController(
+        ProjectDbContext context,
+        ProjectAccessService access)
     {
         _context = context;
+        _access = access;
+    }
+
+    [HttpGet("accessible-ids")]
+    public async Task<IActionResult> GetAccessibleProjectIds()
+    {
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+        var ids = await _access.GetAccessibleProjectIdsAsync(userId, isAdmin);
+        return Ok(ids);
+    }
+
+    [HttpGet("{projectId:guid}/access")]
+    public async Task<IActionResult> CheckProjectAccess(Guid projectId)
+    {
+        var exists = await _context.Projects
+            .AsNoTracking()
+            .AnyAsync(p => p.Id == projectId);
+
+        if (!exists)
+        {
+            return NotFound(new { message = "Project not found." });
+        }
+
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+        var allowed = await _access.CanAccessProjectAsync(userId, projectId, isAdmin);
+
+        if (!allowed)
+        {
+            return Forbid();
+        }
+
+        return Ok(new { allowed = true });
     }
 
     [HttpPost]
@@ -52,16 +89,21 @@ public class ProjectsController : ControllerBase
             });
         }
 
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessTeamAsync(userId, request.TeamId, isAdmin))
+        {
+            return Forbid();
+        }
+
         var project = new ProjectModel
         {
             Id = Guid.NewGuid(),
             TeamId = request.TeamId,
             Name = request.Name.Trim(),
             Description = request.Description,
-            CreatedBy = Guid.Parse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub")
-            ?? throw new UnauthorizedAccessException("User ID claim not found.")),
+            CreatedBy = userId,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -78,8 +120,13 @@ public class ProjectsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetProjects()
     {
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+        var accessibleIds = await _access.GetAccessibleProjectIdsAsync(userId, isAdmin);
+
         var projects = await _context.Projects
             .AsNoTracking()
+            .Where(project => accessibleIds.Contains(project.Id))
             .Select(project => new
             {
                 project.Id,
@@ -113,6 +160,14 @@ public class ProjectsController : ControllerBase
             });
         }
 
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessProjectAsync(userId, projectId, isAdmin))
+        {
+            return Forbid();
+        }
+
         return Ok(project);
     }
 
@@ -140,6 +195,14 @@ public class ProjectsController : ControllerBase
             });
         }
 
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessProjectAsync(userId, projectId, isAdmin))
+        {
+            return Forbid();
+        }
+
         project.Name = request.Name.Trim();
         project.Description = request.Description;
 
@@ -161,6 +224,14 @@ public class ProjectsController : ControllerBase
             {
                 message = "Project not found."
             });
+        }
+
+        var userId = ProjectAccessService.GetUserId(User);
+        var isAdmin = ProjectAccessService.IsAdmin(User);
+
+        if (!await _access.CanAccessProjectAsync(userId, projectId, isAdmin))
+        {
+            return Forbid();
         }
 
         _context.Projects.Remove(project);

@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using TaskManagement.Shared.RateLimiting;
 using TaskManagement.AI.DTOs;
 using TaskManagement.AI.Services;
 
@@ -6,6 +9,7 @@ namespace TaskManagement.AI.Controllers;
 
 [ApiController]
 [Route("api/chat")]
+[Authorize]
 public class ChatController : ControllerBase
 {
     private readonly GeminiService _geminiService;
@@ -20,6 +24,7 @@ public class ChatController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting(RateLimitingExtensions.ChatPolicy)]
     public async Task<ActionResult<ChatResponse>> Chat(
         [FromBody] ChatRequest request)
     {
@@ -50,13 +55,15 @@ public class ChatController : ControllerBase
         }
         catch (Exception ex)
         {
+            var detail = ex.Message;
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 new
                 {
-                    message =
-                        "An error occurred while processing the chat request.",
-                    error = ex.Message
+                    message = string.IsNullOrWhiteSpace(detail)
+                        ? "An error occurred while processing the chat request."
+                        : detail,
+                    error = detail
                 }
             );
         }

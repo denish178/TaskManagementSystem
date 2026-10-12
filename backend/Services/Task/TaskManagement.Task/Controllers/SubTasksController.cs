@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using TaskManagement.Task.Data;
 using TaskManagement.Task.DTOs;
 using TaskManagement.Task.Models;
+using TaskManagement.Task.Services;
 
 namespace TaskManagement.Task.Controllers;
 
@@ -13,10 +14,14 @@ namespace TaskManagement.Task.Controllers;
 public class SubTasksController : ControllerBase
 {
     private readonly TaskDbContext _context;
+    private readonly TaskAuthorizationService _authorization;
 
-    public SubTasksController(TaskDbContext context)
+    public SubTasksController(
+        TaskDbContext context,
+        TaskAuthorizationService authorization)
     {
         _context = context;
+        _authorization = authorization;
     }
 
     // =========================================================
@@ -58,6 +63,11 @@ public class SubTasksController : ControllerBase
             });
         }
 
+        if (!await _authorization.CanAccessTaskAsync(User, task))
+        {
+            return Forbid();
+        }
+
         var subTask = new SubTask
         {
             Id = Guid.NewGuid(),
@@ -95,16 +105,21 @@ public class SubTasksController : ControllerBase
     public async Task<IActionResult> GetSubTasks(
         Guid taskId)
     {
-        var taskExists = await _context.Tasks
+        var task = await _context.Tasks
             .AsNoTracking()
-            .AnyAsync(x => x.Id == taskId);
+            .FirstOrDefaultAsync(x => x.Id == taskId);
 
-        if (!taskExists)
+        if (task == null)
         {
             return NotFound(new
             {
                 message = "Task not found."
             });
+        }
+
+        if (!await _authorization.CanAccessTaskAsync(User, task))
+        {
+            return Forbid();
         }
 
         var subTasks = await _context.SubTasks
@@ -166,16 +181,25 @@ public class SubTasksController : ControllerBase
             });
         }
 
-        subTask.Title = title;
-        subTask.IsCompleted = request.IsCompleted;
-
         var task = await _context.Tasks
             .FirstOrDefaultAsync(x => x.Id == taskId);
 
-        if (task != null)
+        if (task == null)
         {
-            task.UpdatedAt = DateTime.UtcNow;
+            return NotFound(new
+            {
+                message = "Task not found."
+            });
         }
+
+        if (!await _authorization.CanAccessTaskAsync(User, task))
+        {
+            return Forbid();
+        }
+
+        subTask.Title = title;
+        subTask.IsCompleted = request.IsCompleted;
+        task.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 
@@ -212,15 +236,24 @@ public class SubTasksController : ControllerBase
             });
         }
 
-        _context.SubTasks.Remove(subTask);
-
         var task = await _context.Tasks
             .FirstOrDefaultAsync(x => x.Id == taskId);
 
-        if (task != null)
+        if (task == null)
         {
-            task.UpdatedAt = DateTime.UtcNow;
+            return NotFound(new
+            {
+                message = "Task not found."
+            });
         }
+
+        if (!await _authorization.CanAccessTaskAsync(User, task))
+        {
+            return Forbid();
+        }
+
+        _context.SubTasks.Remove(subTask);
+        task.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 

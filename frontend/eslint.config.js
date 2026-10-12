@@ -27,4 +27,10 @@ export default defineConfig([
       "react-refresh/only-export-components": "off",
     },
   },
+  {
+    files: ["playwright.config.js", "e2e/**/*.js"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

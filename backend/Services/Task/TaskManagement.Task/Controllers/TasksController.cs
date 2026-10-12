@@ -5,6 +5,8 @@ using System.Security.Claims;
 using TaskManagement.Task.Data;
 using TaskManagement.Task.DTOs;
 using TaskManagement.Task.Models;
+using TaskManagement.Task.Services;
+using TaskManagement.Shared.Auth;
 
 namespace TaskManagement.Task.Controllers;
 
@@ -14,6 +16,12 @@ namespace TaskManagement.Task.Controllers;
 public class TasksController : ControllerBase
 {
     private readonly TaskDbContext _context;
+    private readonly IProjectAccessClient _projectAccess;
+    private readonly TaskAuthorizationService _authorization;
+    private readonly INotificationClient _notificationClient;
+    private readonly ITaskAuditService _audit;
+    private readonly ITaskRealtimeNotifier _realtime;
+    private readonly ILogger<TasksController> _logger;
 
     private static readonly string[] AllowedStatuses =
     {
@@ -23,10 +31,25 @@ public class TasksController : ControllerBase
         "Done"
     };
 
-    public TasksController(TaskDbContext context)
+    public TasksController(
+        TaskDbContext context,
+        IProjectAccessClient projectAccess,
+        TaskAuthorizationService authorization,
+        INotificationClient notificationClient,
+        ITaskAuditService audit,
+        ITaskRealtimeNotifier realtime,
+        ILogger<TasksController> logger)
     {
         _context = context;
+        _projectAccess = projectAccess;
+        _authorization = authorization;
+        _notificationClient = notificationClient;
+        _audit = audit;
+        _realtime = realtime;
+        _logger = logger;
     }
+
+    private bool IsAdmin => User.IsInRole("Admin");
 
     // =========================================================
     // CREATE TASK
@@ -69,6 +92,12 @@ public class TasksController : ControllerBase
             {
                 message = "Task description cannot exceed 5000 characters."
             });
+        }
+
+        if (!IsAdmin
+            && !await _projectAccess.CanAccessProjectAsync(request.ProjectId))
+        {
+            return Forbid();
         }
 
         var userId = GetCurrentUserId();
@@ -185,6 +214,18 @@ public class TasksController : ControllerBase
                 x.AssigneeId == assigneeId.Value);
         }
 
+        if (!IsAdmin)
+        {
+            var accessibleProjectIds =
+                await _projectAccess.GetAccessibleProjectIdsAsync();
+            var userId = GetCurrentUserId();
+
+            query = query.Where(x =>
+                accessibleProjectIds.Contains(x.ProjectId)
+                || x.AssigneeId == userId
+                || x.CreatedBy == userId);
+        }
+
         var tasks = await query
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new
@@ -261,6 +302,15 @@ public class TasksController : ControllerBase
             });
         }
 
+        if (!await _authorization.CanAccessTaskFromPartsAsync(
+                User,
+                task.ProjectId,
+                task.AssigneeId,
+                task.CreatedBy))
+        {
+            return Forbid();
+        }
+
         return Ok(task);
     }
 
@@ -309,6 +359,11 @@ public class TasksController : ControllerBase
             {
                 message = "Task not found."
             });
+        }
+
+        if (!await _authorization.CanAccessTaskAsync(User, task))
+        {
+            return Forbid();
         }
 
         task.Title = title;
@@ -367,6 +422,11 @@ public class TasksController : ControllerBase
             });
         }
 
+        if (!await _authorization.CanAccessTaskAsync(User, task))
+        {
+            return Forbid();
+        }
+
         _context.Tasks.Remove(task);
 
         await _context.SaveChangesAsync();
@@ -414,10 +474,28 @@ public class TasksController : ControllerBase
             });
         }
 
+        if (!await _authorization.CanAccessTaskAsync(User, task))
+        {
+            return Forbid();
+        }
+
+        var previousStatus = task.Status;
         task.Status = status;
         task.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        if (!string.Equals(previousStatus, status, StringComparison.Ordinal))
+        {
+            var actorId = CurrentUser.GetUserId(User);
+            await _audit.RecordAsync(
+                task.Id,
+                actorId,
+                "StatusChanged",
+                previousStatus,
+                status);
+            await _realtime.NotifyStatusChangedAsync(task);
+        }
 
         return Ok(new
         {
@@ -434,6 +512,43 @@ public class TasksController : ControllerBase
             task.CreatedAt,
             task.UpdatedAt
         });
+    }
+
+    [HttpGet("{taskId:guid}/audit")]
+    public async Task<IActionResult> GetAuditTrail(Guid taskId)
+    {
+        var task = await _context.Tasks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == taskId);
+
+        if (task == null)
+        {
+            return NotFound(new { message = "Task not found." });
+        }
+
+        if (!await _authorization.CanAccessTaskAsync(User, task))
+        {
+            return Forbid();
+        }
+
+        var entries = await _context.TaskAuditEntries
+            .AsNoTracking()
+            .Where(x => x.TaskId == taskId)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Take(100)
+            .Select(x => new
+            {
+                x.Id,
+                x.TaskId,
+                x.ActorUserId,
+                x.Action,
+                x.OldValue,
+                x.NewValue,
+                x.CreatedAtUtc,
+            })
+            .ToListAsync();
+
+        return Ok(entries);
     }
 
     // =========================================================
@@ -468,10 +583,35 @@ public class TasksController : ControllerBase
             });
         }
 
+        var previousAssignee = task.AssigneeId;
         task.AssigneeId = request.AssigneeId;
         task.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        var actorId = CurrentUser.GetUserId(User);
+        await _audit.RecordAsync(
+            task.Id,
+            actorId,
+            "Assigned",
+            previousAssignee?.ToString(),
+            request.AssigneeId.ToString());
+        await _realtime.NotifyAssignedAsync(task);
+
+        try
+        {
+            await _notificationClient.NotifyTaskAssignedAsync(
+                request.AssigneeId,
+                task.Id,
+                task.Title);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to create assignment notification for task {TaskId}",
+                task.Id);
+        }
 
         return Ok(new
         {
@@ -503,6 +643,12 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> GetProjectDashboardData(
         Guid projectId)
     {
+        if (!IsAdmin
+            && !await _projectAccess.CanAccessProjectAsync(projectId))
+        {
+            return Forbid();
+        }
+
         var totalTasks = await _context.Tasks
             .CountAsync(x => x.ProjectId == projectId);
 
@@ -563,6 +709,16 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> GetSprintDashboardData(
         Guid sprintId)
     {
+        var sampleTask = await _context.Tasks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.SprintId == sprintId);
+
+        if (sampleTask != null
+            && !await _authorization.CanAccessTaskAsync(User, sampleTask))
+        {
+            return Forbid();
+        }
+
         var totalTasks = await _context.Tasks
             .CountAsync(x => x.SprintId == sprintId);
 

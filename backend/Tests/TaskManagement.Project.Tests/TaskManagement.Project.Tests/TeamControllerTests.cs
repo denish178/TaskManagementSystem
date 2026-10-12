@@ -4,6 +4,9 @@ using TaskManagement.Project.Controllers;
 using TaskManagement.Project.Data;
 using TaskManagement.Project.DTOs;
 using TaskManagement.Project.Models;
+using TaskManagement.Project.Services;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace TaskManagement.Project.Tests;
 
@@ -22,6 +25,32 @@ public class TeamControllerTests
         return new ProjectDbContext(options);
     }
 
+    private static TeamsController CreateController(
+        ProjectDbContext context,
+        Guid? userId = null)
+    {
+        var id = userId ?? Guid.NewGuid();
+        var controller = new TeamsController(
+            context,
+            new ProjectAccessService(context));
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        [
+                            new Claim(ClaimTypes.NameIdentifier, id.ToString()),
+                            new Claim(ClaimTypes.Role, "Admin"),
+                        ],
+                        "TestAuth")),
+            },
+        };
+
+        return controller;
+    }
+
     // =========================================================
     // CREATE TEAM
     // =========================================================
@@ -32,7 +61,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new CreateTeamRequest(
             "Development Team",
@@ -66,7 +95,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new CreateTeamRequest(
             "",
@@ -87,7 +116,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new CreateTeamRequest(
             "   ",
@@ -132,7 +161,7 @@ public class TeamControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result = await controller.GetTeams();
@@ -150,7 +179,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result = await controller.GetTeams();
@@ -186,7 +215,7 @@ public class TeamControllerTests
         context.Teams.Add(team);
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -211,7 +240,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -245,7 +274,7 @@ public class TeamControllerTests
         context.Teams.Add(team);
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTeamRequest(
             "Updated Team Name",
@@ -279,7 +308,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTeamRequest(
             "",
@@ -301,7 +330,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTeamRequest(
             "   ",
@@ -323,7 +352,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new UpdateTeamRequest(
             "Updated Team",
@@ -363,7 +392,7 @@ public class TeamControllerTests
         context.Teams.Add(team);
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -384,7 +413,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -419,7 +448,7 @@ public class TeamControllerTests
         context.Teams.Add(team);
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new AddTeamMemberRequest(
             userId,
@@ -463,7 +492,7 @@ public class TeamControllerTests
         context.Teams.Add(team);
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new AddTeamMemberRequest(
             Guid.Empty,
@@ -485,7 +514,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new AddTeamMemberRequest(
             Guid.NewGuid(),
@@ -533,7 +562,7 @@ public class TeamControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new AddTeamMemberRequest(
             userId,
@@ -570,7 +599,7 @@ public class TeamControllerTests
         context.Teams.Add(team);
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         var request = new AddTeamMemberRequest(
             userId,
@@ -635,7 +664,7 @@ public class TeamControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -658,7 +687,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -704,7 +733,7 @@ public class TeamControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =
@@ -730,7 +759,7 @@ public class TeamControllerTests
         // Arrange
         await using var context = CreateContext();
 
-        var controller = new TeamsController(context);
+        var controller = CreateController(context);
 
         // Act
         var result =

@@ -7,6 +7,7 @@ using TaskManagement.Project.Data;
 using TaskManagement.Project.DTOs;
 using TaskManagement.Project.Models;
 using ProjectModel = TaskManagement.Project.Models.Project;
+using TaskManagement.Project.Services;
 
 namespace TaskManagement.Project.Tests;
 
@@ -30,11 +31,14 @@ public class ProjectControllerTests
         var identity = new ClaimsIdentity(
             new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.Role, "Admin"),
             },
             "TestAuth");
 
-        var controller = new ProjectsController(context);
+        var controller = new ProjectsController(
+            context,
+            new ProjectAccessService(context));
 
         controller.ControllerContext = new ControllerContext
         {
