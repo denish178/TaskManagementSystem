@@ -20,7 +20,7 @@ Microservices backend (API Gateway + 7 services), React frontend, and local-firs
 
 **Not required locally:** Azure SQL, Key Vault, Azure Blob (File service uses `LocalBlobStorageService` in Development).  
 **Secrets:** copy `.env.example` to `.env` in the repo root (gitignored). Required for Docker SQL, JWT, dev seed users, and optional `GEMINI_API_KEY`.  
-**AI chat:** set `GEMINI_API_KEY` in `.env` (or User Secrets `Gemini:ApiKey`) — see `frontend/README.md`.
+**AI chat:** set `GEMINI_API_KEY` in `.env` (or User Secrets `Gemini:ApiKey`) — see [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md#frontend).
 
 Production continues to use `appsettings.json` + **User Secrets / environment variables** for Azure SQL, MongoDB Atlas, and Blob Storage.
 
