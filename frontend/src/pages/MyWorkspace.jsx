@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/common/PageHeader";
 import ErrorState from "../components/common/ErrorState";
@@ -15,7 +15,7 @@ export default function MyWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     setError("");
@@ -27,11 +27,11 @@ export default function MyWorkspace() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [user]);
 
   useEffect(() => {
     load();
-  }, [user?.id]);
+  }, [load]);
 
   const buckets = useMemo(() => {
     const overdue = [];
