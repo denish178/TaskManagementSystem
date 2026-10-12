@@ -42,9 +42,15 @@
   </Folder>
 
   <Folder Name="/backend/Tests/">
+    <Project Path="backend/Tests/TaskManagement.AI.Tests/TaskManagement.AI.Tests.csproj" />
+    <Project Path="backend/Tests/TaskManagement.Auth.Tests/TaskManagement.Auth.Tests.csproj" />
+    <Project Path="backend/Tests/TaskManagement.Comment.Tests/TaskManagement.Comment.Tests.csproj" />
     <Project Path="backend/Tests/TaskManagement.Dashboard.Tests/TaskManagement.Dashboard.Tests.csproj" />
     <Project Path="backend/Tests/TaskManagement.File.Tests/TaskManagement.File.Tests.csproj" />
+    <Project Path="backend/Tests/TaskManagement.Gateway.Tests/TaskManagement.Gateway.Tests.csproj" />
+    <Project Path="backend/Tests/TaskManagement.Notification.Tests/TaskManagement.Notification.Tests.csproj" />
     <Project Path="backend/Tests/TaskManagement.Project.Tests/TaskManagement.Project.Tests.csproj" />
+    <Project Path="backend/Tests/TaskManagement.Shared.Tests/TaskManagement.Shared.Tests.csproj" />
     <Project Path="backend/Tests/TaskManagement.Task.Tests/TaskManagement.Task.Tests.csproj" />
   </Folder>
 </Solution>

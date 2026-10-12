@@ -11,8 +11,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTaskManagementJwtAuthentication(builder.Configuration);
 builder.Services.AddTaskManagementRateLimiting();
-builder.Services.AddScoped<DatabaseContextService>();
-builder.Services.AddHttpClient<GeminiService>();
+builder.Services.AddScoped<IDatabaseContextService, DatabaseContextService>();
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
 
 var app = builder.Build();
 

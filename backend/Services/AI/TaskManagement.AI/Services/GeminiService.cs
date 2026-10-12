@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace TaskManagement.AI.Services;
 
-public class GeminiService
+public class GeminiService : IGeminiService
 {
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;

@@ -3,7 +3,7 @@ using CommentModel = TaskManagement.Comment.Models.Comment;
 
 namespace TaskManagement.Comment.Repositories;
 
-public class CommentRepository
+public class CommentRepository : ICommentRepository
 {
     private readonly IMongoCollection<CommentModel> _comments;
 

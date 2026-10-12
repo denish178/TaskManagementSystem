@@ -17,13 +17,12 @@ if ($jwtKey.Length -lt 32) {
 }
 
 # Override User Secrets / Azure connection strings for local Docker SQL (per-process below).
+# Use string indexers — DataSource/UserID properties fail on some .NET/PowerShell combos.
 $sqlBuilder = [System.Data.SqlClient.SqlConnectionStringBuilder]::new()
-$sqlBuilder.DataSource = "127.0.0.1,1433"
-$sqlBuilder.UserID = "sa"
-$sqlBuilder.Password = $sqlPassword
-$sqlBuilder.TrustServerCertificate = $true
-$sqlBuilder.Encrypt = $false
-$sqlBase = $sqlBuilder.ConnectionString
+$sqlBuilder["Server"] = "127.0.0.1,1433"
+$sqlBuilder["User ID"] = "sa"
+$sqlBuilder["Password"] = $sqlPassword
+$sqlBase = $sqlBuilder.ConnectionString.TrimEnd(';') + ";TrustServerCertificate=True;Encrypt=False"
 $env:Jwt__Key = $jwtKey
 $env:Jwt__Issuer = "TaskManagement.Auth"
 $env:Jwt__Audience = "TaskManagementSystem"

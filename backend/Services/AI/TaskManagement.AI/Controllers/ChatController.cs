@@ -12,12 +12,12 @@ namespace TaskManagement.AI.Controllers;
 [Authorize]
 public class ChatController : ControllerBase
 {
-    private readonly GeminiService _geminiService;
-    private readonly DatabaseContextService _databaseContextService;
+    private readonly IGeminiService _geminiService;
+    private readonly IDatabaseContextService _databaseContextService;
 
     public ChatController(
-        GeminiService geminiService,
-        DatabaseContextService databaseContextService)
+        IGeminiService geminiService,
+        IDatabaseContextService databaseContextService)
     {
         _geminiService = geminiService;
         _databaseContextService = databaseContextService;

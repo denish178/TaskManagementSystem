@@ -5,7 +5,7 @@ using TaskManagement.Shared.Auth;
 
 namespace TaskManagement.AI.Services;
 
-public class DatabaseContextService
+public class DatabaseContextService : IDatabaseContextService
 {
     private const int MaxRowsPerSection = 100;
 
