@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageHeader from "../components/common/PageHeader";
 import ProjectSubnav from "../components/layout/ProjectSubnav";
@@ -19,7 +19,7 @@ export default function ProjectFiles() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -47,11 +47,11 @@ export default function ProjectFiles() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [projectId]);
 
   useEffect(() => {
     load();
-  }, [projectId]);
+  }, [load]);
 
   if (loading) return <Skeleton className="h-64" />;
   if (error) return <ErrorState message={error} onRetry={load} />;

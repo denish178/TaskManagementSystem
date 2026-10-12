@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/common/PageHeader";
 import ErrorState from "../components/common/ErrorState";
@@ -22,7 +22,7 @@ export default function MyTasks() {
   const [status, setStatus] = useState("");
   const debounced = useDebounce(query);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     setError("");
@@ -35,11 +35,11 @@ export default function MyTasks() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [user, status]);
 
   useEffect(() => {
     load();
-  }, [user?.id, status]);
+  }, [load]);
 
   const filtered = useMemo(() => {
     const needle = debounced.trim().toLowerCase();
