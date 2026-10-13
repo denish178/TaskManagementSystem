@@ -8,4 +8,9 @@ public interface IProjectAccessClient
     Task<bool> CanAccessProjectAsync(
         Guid projectId,
         CancellationToken cancellationToken = default);
+
+    System.Threading.Tasks.Task EnsureProjectMemberAsync(
+        Guid projectId,
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }

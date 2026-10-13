@@ -85,6 +85,7 @@ foreach ($service in $services) {
     }
     "Project" {
       $env:ConnectionStrings__AzureSql = "$sqlBase;Database=TMS_Project"
+      $env:ServiceUrls__Task = "http://localhost:5266"
       Remove-Item Env:ConnectionStrings__AuthDatabase -ErrorAction SilentlyContinue
       Remove-Item Env:ConnectionStrings__FileDb -ErrorAction SilentlyContinue
     }

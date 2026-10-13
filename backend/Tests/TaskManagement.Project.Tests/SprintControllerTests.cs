@@ -30,7 +30,7 @@ public class SprintControllerTests
     {
         var controller = new SprintsController(
             context,
-            new ProjectAccessService(context));
+            new ProjectAccessService(context, new NullTaskProjectAccessClient()));
 
         controller.ControllerContext = new ControllerContext
         {

@@ -11,3 +11,5 @@ public record UpdateProjectRequest(
     string Name,
     string? Description
 );
+
+public record EnsureProjectMemberRequest(Guid UserId);

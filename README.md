@@ -76,10 +76,9 @@ Passwords come from your `.env` (`TMS_DEV_ADMIN_PASSWORD` / `TMS_DEV_USER_PASSWO
 - Create / edit / delete **teams** and **projects**
 - Create / edit / delete **sprints**
 - Add or remove **team members**
-- **Assign** tasks to people
-- Add or remove **subtasks**; **delete** tasks
+- **Assign** tasks to people (assignee is added to the project’s team automatically)
 
-**Both Admin and User** (when they have access to the project)
+**Both Admin and User** (when they have access to the project — team member or assigned to a task in that project)
 
 - View projects and tasks
 - Create tasks on the board

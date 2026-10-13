@@ -24,7 +24,9 @@ public class TasksControllerTests
         return new TaskDbContext(options);
     }
 
-    private static TasksController CreateController(TaskDbContext context)
+    private static TasksController CreateController(
+        TaskDbContext context,
+        IProjectAccessClient? projectAccess = null)
     {
         var identity = new ClaimsIdentity(
             new[]
@@ -34,17 +36,9 @@ public class TasksControllerTests
             },
             "TestAuth");
 
-        var projectAccess = new Mock<IProjectAccessClient>();
-        projectAccess
-            .Setup(x => x.CanAccessProjectAsync(
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-        projectAccess
-            .Setup(x => x.GetAccessibleProjectIdsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+        var projectAccessMock = projectAccess ?? CreateDefaultProjectAccessMock().Object;
 
-        var authorization = new TaskAuthorizationService(projectAccess.Object);
+        var authorization = new TaskAuthorizationService(projectAccessMock);
         var notificationClient = new Mock<INotificationClient>();
         var audit = new Mock<ITaskAuditService>();
         var realtime = new Mock<ITaskRealtimeNotifier>();
@@ -52,7 +46,7 @@ public class TasksControllerTests
 
         var controller = new TasksController(
             context,
-            projectAccess.Object,
+            projectAccessMock,
             authorization,
             notificationClient.Object,
             audit.Object,
@@ -68,6 +62,26 @@ public class TasksControllerTests
         };
 
         return controller;
+    }
+
+    private static Mock<IProjectAccessClient> CreateDefaultProjectAccessMock()
+    {
+        var projectAccess = new Mock<IProjectAccessClient>();
+        projectAccess
+            .Setup(x => x.CanAccessProjectAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        projectAccess
+            .Setup(x => x.GetAccessibleProjectIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        projectAccess
+            .Setup(x => x.EnsureProjectMemberAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(System.Threading.Tasks.Task.CompletedTask);
+        return projectAccess;
     }
 
     // =========================================================
@@ -682,6 +696,46 @@ public class TasksControllerTests
         Assert.Equal(404, notFound.StatusCode);
     }
 
+    [Fact]
+    public async System.Threading.Tasks.Task GetAccessibleProjectIdsFromTasks_ReturnsAssigneeProjects()
+    {
+        using var context = CreateContext();
+
+        var userId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        context.Tasks.Add(new TaskItem
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = projectId,
+            Title = "Mine",
+            Status = "Todo",
+            Priority = "Medium",
+            AssigneeId = userId,
+            CreatedBy = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        await context.SaveChangesAsync();
+
+        var controller = CreateController(context);
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(
+            new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                    new Claim(ClaimTypes.Role, "User"),
+                },
+                "TestAuth"));
+
+        var result = await controller.GetAccessibleProjectIdsFromTasks();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var ids = Assert.IsAssignableFrom<IEnumerable<Guid>>(ok.Value).ToList();
+
+        Assert.Contains(projectId, ids);
+    }
+
     // =========================================================
     // ASSIGN TASK
     // =========================================================
@@ -693,11 +747,12 @@ public class TasksControllerTests
 
         var taskId = Guid.NewGuid();
         var assigneeId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
 
         context.Tasks.Add(new TaskItem
         {
             Id = taskId,
-            ProjectId = Guid.NewGuid(),
+            ProjectId = projectId,
             Title = "Assignment Task",
             Status = "Todo",
             Priority = "Medium",
@@ -708,7 +763,24 @@ public class TasksControllerTests
 
         await context.SaveChangesAsync();
 
-        var controller = CreateController(context);
+        var projectAccess = new Mock<IProjectAccessClient>();
+        projectAccess
+            .Setup(x => x.CanAccessProjectAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        projectAccess
+            .Setup(x => x.GetAccessibleProjectIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        projectAccess
+            .Setup(x => x.EnsureProjectMemberAsync(
+                projectId,
+                assigneeId,
+                It.IsAny<CancellationToken>()))
+            .Returns(System.Threading.Tasks.Task.CompletedTask)
+            .Verifiable();
+
+        var controller = CreateController(context, projectAccess.Object);
 
         var request = new AssignTaskRequest(assigneeId);
 
@@ -723,6 +795,8 @@ public class TasksControllerTests
         Assert.Equal(
             assigneeId,
             task.GetType().GetProperty("AssigneeId")!.GetValue(task));
+
+        projectAccess.Verify();
     }
 
     [Fact]

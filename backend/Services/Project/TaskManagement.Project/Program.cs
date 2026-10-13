@@ -54,6 +54,16 @@ builder.Services.AddDbContext<ProjectDbContext>(options =>
         });
 });
 builder.Services.AddTaskManagementJwtAuthentication(builder.Configuration);
+builder.Services.AddHttpContextAccessor();
+
+var taskServiceUrl =
+    builder.Configuration["ServiceUrls:Task"]
+    ?? "http://localhost:5266";
+
+builder.Services.AddHttpClient<ITaskProjectAccessClient, TaskProjectAccessClient>(client =>
+{
+    client.BaseAddress = new Uri(taskServiceUrl);
+});
 builder.Services.AddScoped<ProjectAccessService>();
 
 // ----------------------------------------------------

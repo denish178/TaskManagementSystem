@@ -7,10 +7,14 @@ namespace TaskManagement.Project.Services;
 public class ProjectAccessService
 {
     private readonly ProjectDbContext _context;
+    private readonly ITaskProjectAccessClient _taskProjectAccess;
 
-    public ProjectAccessService(ProjectDbContext context)
+    public ProjectAccessService(
+        ProjectDbContext context,
+        ITaskProjectAccessClient taskProjectAccess)
     {
         _context = context;
+        _taskProjectAccess = taskProjectAccess;
     }
 
     public static Guid GetUserId(ClaimsPrincipal user)
@@ -66,7 +70,13 @@ public class ProjectAccessService
             return false;
         }
 
-        return await CanAccessTeamAsync(userId, teamId, false);
+        if (await CanAccessTeamAsync(userId, teamId, false))
+        {
+            return true;
+        }
+
+        var fromTasks = await _taskProjectAccess.GetAccessibleProjectIdsAsync();
+        return fromTasks.Contains(projectId);
     }
 
     public async Task<List<Guid>> GetAccessibleTeamIdsAsync(
@@ -103,15 +113,55 @@ public class ProjectAccessService
 
         var teamIds = await GetAccessibleTeamIdsAsync(userId, false);
 
-        if (teamIds.Count == 0)
+        var projectIds = teamIds.Count == 0
+            ? new List<Guid>()
+            : await _context.Projects
+                .AsNoTracking()
+                .Where(p => teamIds.Contains(p.TeamId))
+                .Select(p => p.Id)
+                .ToListAsync();
+
+        var result = projectIds.ToHashSet();
+        var fromTasks = await _taskProjectAccess.GetAccessibleProjectIdsAsync();
+        foreach (var id in fromTasks)
         {
-            return [];
+            result.Add(id);
         }
 
-        return await _context.Projects
+        return result.ToList();
+    }
+
+    public async Task<bool> EnsureTeamMemberForProjectAsync(
+        Guid projectId,
+        Guid userId)
+    {
+        var project = await _context.Projects
             .AsNoTracking()
-            .Where(p => teamIds.Contains(p.TeamId))
-            .Select(p => p.Id)
-            .ToListAsync();
+            .FirstOrDefaultAsync(p => p.Id == projectId);
+
+        if (project == null)
+        {
+            return false;
+        }
+
+        var alreadyMember = await _context.TeamMembers
+            .AnyAsync(m => m.TeamId == project.TeamId && m.UserId == userId);
+
+        if (alreadyMember)
+        {
+            return true;
+        }
+
+        _context.TeamMembers.Add(new Models.TeamMember
+        {
+            Id = Guid.NewGuid(),
+            TeamId = project.TeamId,
+            UserId = userId,
+            Role = "Member",
+            JoinedAt = DateTime.UtcNow
+        });
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 }
