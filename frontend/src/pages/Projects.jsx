@@ -18,7 +18,7 @@ import { formatDate } from "../utils/format";
 import useDebounce from "../hooks/useDebounce";
 
 export default function Projects() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [projects, setProjects] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -211,12 +211,14 @@ export default function Projects() {
         title="Projects"
         subtitle="Projects belong to a team in the Project Service."
         actions={
-          <>
-            <Button variant="secondary" onClick={() => setTeamFormOpen(true)}>
-              New team
-            </Button>
-            <Button onClick={openCreate}>New project</Button>
-          </>
+          isAdmin ? (
+            <>
+              <Button variant="secondary" onClick={() => setTeamFormOpen(true)}>
+                New team
+              </Button>
+              <Button onClick={openCreate}>New project</Button>
+            </>
+          ) : null
         }
       />
       {teams.length > 0 ? (
@@ -229,12 +231,16 @@ export default function Projects() {
                 className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
               >
                 <span className="font-medium">{getField(team, "name")}</span>
-                <Button variant="ghost" onClick={() => openEditTeam(team)}>
-                  Edit
-                </Button>
-                <Button variant="ghost" onClick={() => setDeletingTeam(team)}>
-                  Delete
-                </Button>
+                {isAdmin ? (
+                  <>
+                    <Button variant="ghost" onClick={() => openEditTeam(team)}>
+                      Edit
+                    </Button>
+                    <Button variant="ghost" onClick={() => setDeletingTeam(team)}>
+                      Delete
+                    </Button>
+                  </>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -253,7 +259,9 @@ export default function Projects() {
           icon={FolderKanban}
           title="No projects"
           description="Create a team, then add a project."
-          action={<Button onClick={openCreate}>Create project</Button>}
+          action={
+            isAdmin ? <Button onClick={openCreate}>Create project</Button> : null
+          }
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -274,14 +282,16 @@ export default function Projects() {
                 Created {formatDate(getField(project, "createdAt"))} ·{" "}
                 {getField(project, "sprintCount") ?? 0} sprints
               </p>
-              <div className="mt-4 flex gap-2">
-                <Button variant="secondary" onClick={() => openEdit(project)}>
-                  Edit
-                </Button>
-                <Button variant="ghost" onClick={() => setDeleting(project)}>
-                  Delete
-                </Button>
-              </div>
+              {isAdmin ? (
+                <div className="mt-4 flex gap-2">
+                  <Button variant="secondary" onClick={() => openEdit(project)}>
+                    Edit
+                  </Button>
+                  <Button variant="ghost" onClick={() => setDeleting(project)}>
+                    Delete
+                  </Button>
+                </div>
+              ) : null}
             </article>
           ))}
         </div>

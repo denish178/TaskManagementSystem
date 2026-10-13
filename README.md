@@ -1,53 +1,46 @@
 # Task Management System
 
-Microservices backend (API Gateway + 7 services), React frontend, and local-first development **without paid Azure resources**.
+A task board app: **React UI** talks to a **.NET API Gateway**, which routes to small backend services (auth, projects, tasks, comments, files, notifications, dashboard, AI chat).
 
-## Architecture
+You can run everything on your machine with **Docker + free local databases** — no Azure account required for development.
 
-| Component | Technology | Local dev |
-|-----------|------------|-----------|
-| Gateway | Ocelot (`:5204`) | `backend/Gateway/TaskManagement.Gateway` |
-| Auth | EF Core + SQL Server | `TMS_Auth` database |
-| Project | EF Core + SQL Server | `TMS_Project` (teams, projects, sprints) |
-| Task | EF Core + SQL Server | `TMS_Task` |
-| Comment | MongoDB | `mongodb://localhost:27018` |
-| File | EF Core + **local disk** storage | `TMS_File` + `App_Data/uploads` |
-| Dashboard | HTTP → Task service | Aggregates task metrics |
-| AI | Gemini + SQL context (`:5287`) | `POST /api/chat` via Gateway; scoped DB context; rate limited |
-| Notification | EF Core + SQL Server (`:5290`) | `TMS_Notification`; in-app bell in UI |
-| Shared | `TaskManagement.Shared` | JWT, health, rate-limit policies (Auth, AI, Notification) |
-| Frontend | React + Vite (`:5173`) | `frontend` |
+---
 
-**Not required locally:** Azure SQL, Key Vault, Azure Blob (File service uses `LocalBlobStorageService` in Development).  
-**Secrets:** copy `.env.example` to `.env` in the repo root (gitignored). Required for Docker SQL, JWT, dev seed users, and optional `GEMINI_API_KEY`.  
-**AI chat:** set `GEMINI_API_KEY` in `.env` (or User Secrets `Gemini:ApiKey`) — see [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md#frontend).
+## What you need
 
-Production continues to use `appsettings.json` + **User Secrets / environment variables** for Azure SQL, MongoDB Atlas, and Blob Storage.
+1. **Docker Desktop** (SQL Server + MongoDB in containers)
+2. **.NET 10 SDK**
+3. **Node.js 20+**
 
-**Note:** If you previously stored Azure connection strings in .NET User Secrets, they override `appsettings.Development.json`. Use `scripts/start-backend.ps1` (it sets local env vars per service) or clear secrets: `dotnet user-secrets clear --project <csproj>`.
+---
 
-## Prerequisites
+## Run locally (3 steps)
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Node.js 20+](https://nodejs.org/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (SQL Server + MongoDB containers)
+### 1. Secrets
 
-**Port conflicts**
-
-- MongoDB: compose uses host port **27018** if **27017** is already in use.
-- SQL Server: compose uses **1433**. If you already run SQL Server locally, stop it or change the compose port and update `appsettings.Development.json` connection strings.
-
-## Quick start (recommended)
-
-From the repository root:
+From the **repo root**:
 
 ```powershell
 copy .env.example .env
-# Edit .env — set MSSQL_SA_PASSWORD, JWT_SIGNING_KEY, TMS_DEV_* passwords
+```
+
+Open `.env` and set at least:
+
+- `MSSQL_SA_PASSWORD` — strong password for local SQL
+- `JWT_SIGNING_KEY` — at least 32 characters
+- `TMS_DEV_ADMIN_PASSWORD` / `TMS_DEV_USER_PASSWORD` — passwords for test logins
+
+Optional: `GEMINI_API_KEY` for the AI chat widget.
+
+### 2. Backend + databases
+
+```powershell
 powershell -File scripts/start-local.ps1
 ```
 
-In a **second terminal**:
+Wait until it finishes (Docker starts, then all services). Gateway health: http://localhost:5204/health
+
+### 3. Frontend (new terminal)
 
 ```powershell
 cd frontend
@@ -56,80 +49,84 @@ npm install
 npm run dev
 ```
 
-| URL | Purpose |
-|-----|---------|
-| http://localhost:5173 | Frontend |
-| http://localhost:5204 | API Gateway |
-| http://localhost:5204/health | Gateway health |
+Open **http://localhost:5173**
 
-### Dev login (seeded on first Auth startup)
+| What | URL |
+|------|-----|
+| App (UI) | http://localhost:5173 |
+| API (Gateway) | http://localhost:5204 |
 
-Set `TMS_DEV_ADMIN_PASSWORD` and `TMS_DEV_USER_PASSWORD` in `.env`. Default emails:
+---
 
-| Email | Role |
-|-------|------|
-| admin@local.test | Admin |
-| user@local.test | User |
+## Log in (dev users)
 
-Migrations run automatically in **Development** for Auth, Task, Project, File, and Notification.
+Passwords come from your `.env` (`TMS_DEV_ADMIN_PASSWORD` / `TMS_DEV_USER_PASSWORD`).
 
-## Scripts
+| Email | Role | Use for |
+|-------|------|---------|
+| `admin@local.test` | **Admin** | Full setup: teams, projects, sprints, members, assign tasks, delete tasks |
+| `user@local.test` | **User** | Day-to-day work: view boards, move tasks, comments, files |
 
-| Script | Description |
-|--------|-------------|
-| `scripts/start-local.ps1` | Docker infra + all backend services (use `powershell -File`) |
-| `scripts/start-backend.ps1` | Backend only (expects DBs running) |
-| `scripts/stop-backend.ps1` | Stop processes started by `start-backend.ps1` |
-| `scripts/wait-sql.ps1` | Wait until SQL port is ready |
-| `scripts/health-check.ps1` | GET `/health` on each service |
-| `scripts/e2e-gateway.ps1` | API smoke tests through the Gateway |
-| `deploy/docker/docker-compose.apps.yml` | Optional: run all .NET services in Docker (with `docker-compose.dev.yml`) |
-| Redis (`tms-redis`, `:6379`) | Optional SignalR backplane (started with `deploy/docker/docker-compose.dev.yml`) |
+---
 
-Logs: `logs/*.log`  
-Process IDs: `.local/backend-pids.json`
+## Admin vs User (simple)
 
-## Manual startup
+**Admin only**
 
-```powershell
-docker compose --project-directory . -f deploy/docker/docker-compose.dev.yml up -d
-powershell -File scripts/wait-sql.ps1
-$env:ASPNETCORE_ENVIRONMENT = "Development"
-dotnet run --project backend/Services/Auth/TaskManagement.Auth
-# ... repeat for Project, Task, Comment, File, Dashboard, AI, Notification, then Gateway
+- Create / edit / delete **teams** and **projects**
+- Create / edit / delete **sprints**
+- Add or remove **team members**
+- **Assign** tasks to people
+- Add or remove **subtasks**; **delete** tasks
+
+**Both Admin and User** (when they have access to the project)
+
+- View projects and tasks
+- Create tasks on the board
+- Change task status (Kanban), edit task details
+- Mark subtasks complete (checkbox)
+- Comments and file uploads
+- Notifications bell, dashboard, AI chat (if Gemini key is set)
+
+Task statuses: `Todo` → `InProgress` → `Testing` → `Done`
+
+---
+
+## Useful commands
+
+| Goal | Command |
+|------|---------|
+| Stop backend services | `powershell -File scripts/stop-backend.ps1` |
+| Check all service health | `powershell -File scripts/health-check.ps1` |
+| API smoke test | `powershell -File scripts/e2e-gateway.ps1` |
+| Backend tests | `dotnet test TaskManagement.slnx` |
+| Frontend lint / test / build | `cd frontend` then `npm run lint`, `npm run test`, `npm run build` |
+
+Frontend must point at the gateway: `VITE_API_BASE_URL=http://localhost:5204` in `frontend/.env`.
+
+---
+
+## Project layout (short)
+
+```
+TaskManagement.slnx     # Open in Visual Studio / Rider
+backend/                # Microservices + Gateway
+frontend/               # React app
+deploy/docker/          # Docker Compose files
+scripts/                # start-local.ps1, etc.
+docs/                   # More detail
 ```
 
-Ports match `backend/Gateway/TaskManagement.Gateway/ocelot.json`.
+---
 
-## Frontend environment
+## More documentation
 
-`frontend/.env.example`:
+- [Local development](docs/LOCAL_DEVELOPMENT.md) — ports, manual service startup, frontend scripts
+- [Repository layout](docs/REPOSITORY_LAYOUT.md) — folder conventions
+- [Roadmap](docs/IMPROVEMENTS.md) — planned improvements (email, observability, deploy)
 
-```env
-VITE_API_BASE_URL=http://localhost:5204
-```
+---
 
-## Business rules
+## Production note
 
-- Kanban statuses: `Todo`, `InProgress`, `Testing`, `Done`
-- **Only `Admin` may assign tasks** (`PATCH /api/tasks/{id}/assign`); UI hides assign controls for other roles
-- Task updates do not change `AssigneeId` unless the assign endpoint is called
-
-## Tests
-
-```powershell
-dotnet test TaskManagement.slnx
-cd frontend
-npm run lint
-npm run test
-npm run build
-npm run test:e2e   # Playwright; full login test needs backend + frontend running
-```
-
-## Improvements
-
-See [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) for the security/DevOps roadmap (Phase 1 is in the codebase).
-
-## More detail
-
-See [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) and [docs/REPOSITORY_LAYOUT.md](docs/REPOSITORY_LAYOUT.md).
+Development uses `.env` and local Docker. Production should use environment variables / your host’s secret store for SQL, MongoDB, blob storage, and JWT — never commit real secrets to git.

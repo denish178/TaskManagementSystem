@@ -62,6 +62,11 @@ public class ProjectsController : ControllerBase
     public async Task<IActionResult> CreateProject(
         CreateProjectRequest request)
     {
+        if (!ProjectAccessService.IsAdmin(User))
+        {
+            return Forbid();
+        }
+
         if (request.TeamId == Guid.Empty)
         {
             return BadRequest(new
@@ -176,6 +181,11 @@ public class ProjectsController : ControllerBase
         Guid projectId,
         UpdateProjectRequest request)
     {
+        if (!ProjectAccessService.IsAdmin(User))
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(new
@@ -215,6 +225,11 @@ public class ProjectsController : ControllerBase
     public async Task<IActionResult> DeleteProject(
         Guid projectId)
     {
+        if (!ProjectAccessService.IsAdmin(User))
+        {
+            return Forbid();
+        }
+
         var project = await _context.Projects
             .FirstOrDefaultAsync(x => x.Id == projectId);
 

@@ -411,6 +411,11 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> DeleteTask(
         Guid taskId)
     {
+        if (!IsAdmin)
+        {
+            return Forbid();
+        }
+
         var task = await _context.Tasks
             .FirstOrDefaultAsync(x => x.Id == taskId);
 
@@ -420,11 +425,6 @@ public class TasksController : ControllerBase
             {
                 message = "Task not found."
             });
-        }
-
-        if (!await _authorization.CanAccessTaskAsync(User, task))
-        {
-            return Forbid();
         }
 
         _context.Tasks.Remove(task);
