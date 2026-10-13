@@ -9,8 +9,13 @@ public static class DevelopmentDataSeeder
 {
     private static readonly (string Email, string Name, string Role, Guid Id)[] DevUsers =
     [
-        ("admin@local.test", "Local Admin", "Admin", Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
-        ("user@local.test", "Local User", "User", Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")),
+        ("admin@local.test", "Priya Sharma", "Admin", Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
+        ("user@local.test", "Rahul Mehta", "User", Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")),
+        ("ananya.iyer@acme.test", "Ananya Iyer", "User", Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc01")),
+        ("vikram.singh@acme.test", "Vikram Singh", "User", Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc02")),
+        ("neha.kapoor@acme.test", "Neha Kapoor", "User", Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc03")),
+        ("arjun.desai@acme.test", "Arjun Desai", "User", Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc04")),
+        ("sofia.martinez@acme.test", "Sofia Martinez", "User", Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc05")),
     ];
 
     public static async Task SeedAsync(IServiceProvider services)

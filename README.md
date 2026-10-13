@@ -64,8 +64,17 @@ Passwords come from your `.env` (`TMS_DEV_ADMIN_PASSWORD` / `TMS_DEV_USER_PASSWO
 
 | Email | Role | Use for |
 |-------|------|---------|
-| `admin@local.test` | **Admin** | Full setup: teams, projects, sprints, members, assign tasks, delete tasks |
-| `user@local.test` | **User** | Day-to-day work: view boards, move tasks, comments, files |
+| `admin@local.test` | **Admin** (Priya Sharma) | Full setup: teams, projects, sprints, members, assign tasks, delete tasks |
+| `user@local.test` | **User** (Rahul Mehta) | Day-to-day work: view boards, move tasks, comments, files |
+| `ananya.iyer@acme.test`, `vikram.singh@acme.test`, `neha.kapoor@acme.test`, `arjun.desai@acme.test`, `sofia.martinez@acme.test` | **User** | Extra demo teammates — same password as `user@local.test` |
+
+**Presentation sample data** (after backend is up, restart Auth once if you just pulled new code):
+
+```powershell
+powershell -File scripts/seed-presentation-demo.ps1
+```
+
+Creates team **Acme Digital**, 3 projects, sprints, 7 tasks with subtasks, assignments, and comments. Skips only when **Customer Mobile App** project already exists; resumes if the team was created without projects.
 
 ---
 
@@ -98,6 +107,7 @@ Task statuses: `Todo` → `InProgress` → `Testing` → `Done`
 | Stop backend services | `powershell -File scripts/stop-backend.ps1` |
 | Check all service health | `powershell -File scripts/health-check.ps1` |
 | API smoke test | `powershell -File scripts/e2e-gateway.ps1` |
+| Presentation demo data | `powershell -File scripts/seed-presentation-demo.ps1` |
 | Backend tests | `dotnet test TaskManagement.slnx` |
 | Frontend lint / test / build | `cd frontend` then `npm run lint`, `npm run test`, `npm run build` |
 
