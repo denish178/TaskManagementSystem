@@ -58,6 +58,29 @@ public class ProjectsController : ControllerBase
         return Ok(new { allowed = true });
     }
 
+    [Authorize(Roles = "Admin")]
+    [HttpPost("{projectId:guid}/ensure-member")]
+    public async Task<IActionResult> EnsureProjectMember(
+        Guid projectId,
+        EnsureProjectMemberRequest request)
+    {
+        if (request.UserId == Guid.Empty)
+        {
+            return BadRequest(new { message = "UserId is required." });
+        }
+
+        var ensured = await _access.EnsureTeamMemberForProjectAsync(
+            projectId,
+            request.UserId);
+
+        if (!ensured)
+        {
+            return NotFound(new { message = "Project not found." });
+        }
+
+        return NoContent();
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateProject(
         CreateProjectRequest request)

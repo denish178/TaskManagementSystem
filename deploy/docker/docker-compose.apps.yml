@@ -36,6 +36,7 @@ services:
       Jwt__Audience: TaskManagementSystem
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__AzureSql: "Server=sqlserver,1433;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;Database=TMS_Project"
+      ServiceUrls__Task: http://task:8080
     depends_on:
       sqlserver:
         condition: service_healthy

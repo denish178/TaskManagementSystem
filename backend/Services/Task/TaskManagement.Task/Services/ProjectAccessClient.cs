@@ -71,6 +71,27 @@ public class ProjectAccessClient : IProjectAccessClient
         return payload?.Allowed == true;
     }
 
+    public async System.Threading.Tasks.Task EnsureProjectMemberAsync(
+        Guid projectId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"api/projects/{projectId}/ensure-member")
+        {
+            Content = JsonContent.Create(new { userId })
+        };
+
+        AttachBearerToken(request);
+
+        using var response = await _httpClient.SendAsync(
+            request,
+            cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+    }
+
     private void AttachBearerToken(HttpRequestMessage request)
     {
         var header = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();

@@ -38,7 +38,7 @@ public class ProjectControllerTests
 
         var controller = new ProjectsController(
             context,
-            new ProjectAccessService(context));
+            new ProjectAccessService(context, new NullTaskProjectAccessClient()));
 
         controller.ControllerContext = new ControllerContext
         {
@@ -451,6 +451,48 @@ public class ProjectControllerTests
 
         // Assert
         Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task EnsureProjectMember_AddsUserToProjectTeam()
+    {
+        await using var context = CreateContext();
+
+        var teamId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var assigneeId = Guid.NewGuid();
+
+        context.Teams.Add(new Team
+        {
+            Id = teamId,
+            Name = "Ops",
+            CreatedBy = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow
+        });
+
+        context.Projects.Add(new ProjectModel
+        {
+            Id = projectId,
+            TeamId = teamId,
+            Name = "Alpha",
+            CreatedBy = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await context.SaveChangesAsync();
+
+        var controller = CreateController(context);
+
+        var result = await controller.EnsureProjectMember(
+            projectId,
+            new EnsureProjectMemberRequest(assigneeId));
+
+        Assert.IsType<NoContentResult>(result);
+
+        var isMember = await context.TeamMembers.AnyAsync(m =>
+            m.TeamId == teamId && m.UserId == assigneeId);
+
+        Assert.True(isMember);
     }
 }
 

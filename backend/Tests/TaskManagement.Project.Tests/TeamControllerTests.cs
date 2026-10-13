@@ -33,7 +33,7 @@ public class TeamControllerTests
         var id = userId ?? Guid.NewGuid();
         var controller = new TeamsController(
             context,
-            new ProjectAccessService(context));
+            new ProjectAccessService(context, new NullTaskProjectAccessClient()));
 
         controller.ControllerContext = new ControllerContext
         {

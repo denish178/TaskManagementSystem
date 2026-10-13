@@ -254,6 +254,31 @@ public class TasksController : ControllerBase
     }
 
     // =========================================================
+    // PROJECT IDS VIA TASK ASSIGNMENT (for project-service RBAC)
+    // GET /api/tasks/accessible-project-ids
+    // =========================================================
+
+    [HttpGet("accessible-project-ids")]
+    public async Task<IActionResult> GetAccessibleProjectIdsFromTasks()
+    {
+        if (IsAdmin)
+        {
+            return Ok(Array.Empty<Guid>());
+        }
+
+        var userId = GetCurrentUserId();
+
+        var projectIds = await _context.Tasks
+            .AsNoTracking()
+            .Where(t => t.AssigneeId == userId || t.CreatedBy == userId)
+            .Select(t => t.ProjectId)
+            .Distinct()
+            .ToListAsync();
+
+        return Ok(projectIds);
+    }
+
+    // =========================================================
     // GET SINGLE TASK
     // GET /api/tasks/{taskId}
     // =========================================================
@@ -588,6 +613,21 @@ public class TasksController : ControllerBase
         task.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        try
+        {
+            await _projectAccess.EnsureProjectMemberAsync(
+                task.ProjectId,
+                request.AssigneeId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to grant project access for assignee {UserId} on project {ProjectId}",
+                request.AssigneeId,
+                task.ProjectId);
+        }
 
         var actorId = CurrentUser.GetUserId(User);
         await _audit.RecordAsync(
