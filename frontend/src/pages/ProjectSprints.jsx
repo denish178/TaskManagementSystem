@@ -12,6 +12,7 @@ import Field, { inputClassName } from "../components/common/Field";
 import projectService from "../services/projectService";
 import sprintService from "../services/sprintService";
 import dashboardService from "../services/dashboardService";
+import { useAuth } from "../context/AuthContext";
 import { getField } from "../utils/http";
 import { formatDate, formatDateInput } from "../utils/format";
 
@@ -23,6 +24,7 @@ const emptyForm = {
 };
 
 export default function ProjectSprints() {
+  const { isAdmin } = useAuth();
   const { projectId } = useParams();
   const [project, setProject] = useState(null);
   const [sprints, setSprints] = useState([]);
@@ -136,7 +138,7 @@ export default function ProjectSprints() {
         crumbs="Projects"
         title={getField(project, "name")}
         subtitle="Sprints"
-        actions={<Button onClick={openCreate}>New sprint</Button>}
+        actions={isAdmin ? <Button onClick={openCreate}>New sprint</Button> : null}
       />
       <ProjectSubnav projectId={projectId} />
       <ul className="space-y-4">
@@ -163,12 +165,16 @@ export default function ProjectSprints() {
                   ) : null}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="secondary" onClick={() => openEdit(sprint)}>
-                    Edit
-                  </Button>
-                  <Button variant="ghost" onClick={() => setDeleting(sprint)}>
-                    Delete
-                  </Button>
+                  {isAdmin ? (
+                    <>
+                      <Button variant="secondary" onClick={() => openEdit(sprint)}>
+                        Edit
+                      </Button>
+                      <Button variant="ghost" onClick={() => setDeleting(sprint)}>
+                        Delete
+                      </Button>
+                    </>
+                  ) : null}
                 </div>
               </div>
               {progress ? (

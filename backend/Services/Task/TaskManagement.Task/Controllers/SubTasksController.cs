@@ -34,6 +34,11 @@ public class SubTasksController : ControllerBase
         Guid taskId,
         CreateSubTaskRequest request)
     {
+        if (!User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(request.Title))
         {
             return BadRequest(new
@@ -223,6 +228,11 @@ public class SubTasksController : ControllerBase
         Guid taskId,
         Guid subtaskId)
     {
+        if (!User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+
         var subTask = await _context.SubTasks
             .FirstOrDefaultAsync(x =>
                 x.Id == subtaskId &&

@@ -28,6 +28,11 @@ public class TeamsController : ControllerBase
     public async Task<IActionResult> CreateTeam(
         CreateTeamRequest request)
     {
+        if (!ProjectAccessService.IsAdmin(User))
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(new
@@ -124,6 +129,11 @@ public class TeamsController : ControllerBase
         Guid teamId,
         UpdateTeamRequest request)
     {
+        if (!ProjectAccessService.IsAdmin(User))
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(new
@@ -162,6 +172,11 @@ public class TeamsController : ControllerBase
     [HttpDelete("{teamId:guid}")]
     public async Task<IActionResult> DeleteTeam(Guid teamId)
     {
+        if (!ProjectAccessService.IsAdmin(User))
+        {
+            return Forbid();
+        }
+
         var team = await _context.Teams
             .FirstOrDefaultAsync(x => x.Id == teamId);
 
@@ -193,6 +208,11 @@ public class TeamsController : ControllerBase
         Guid teamId,
         AddTeamMemberRequest request)
     {
+        if (!ProjectAccessService.IsAdmin(User))
+        {
+            return Forbid();
+        }
+
         var teamExists = await _context.Teams
             .AnyAsync(x => x.Id == teamId);
 
@@ -286,6 +306,11 @@ public class TeamsController : ControllerBase
         Guid teamId,
         Guid userId)
     {
+        if (!ProjectAccessService.IsAdmin(User))
+        {
+            return Forbid();
+        }
+
         var member = await _context.TeamMembers
             .FirstOrDefaultAsync(x =>
                 x.TeamId == teamId &&

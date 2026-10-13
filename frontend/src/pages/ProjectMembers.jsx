@@ -13,9 +13,11 @@ import Field, { inputClassName } from "../components/common/Field";
 import projectService from "../services/projectService";
 import teamService from "../services/teamService";
 import authService from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 import { getField } from "../utils/http";
 
 export default function ProjectMembers() {
+  const { isAdmin } = useAuth();
   const { projectId } = useParams();
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
@@ -105,9 +107,11 @@ export default function ProjectMembers() {
         title={getField(project, "name")}
         subtitle="Team members"
         actions={
-          <Button onClick={() => setAddOpen(true)} disabled={!teamId}>
-            Add member
-          </Button>
+          isAdmin ? (
+            <Button onClick={() => setAddOpen(true)} disabled={!teamId}>
+              Add member
+            </Button>
+          ) : null
         }
       />
       <ProjectSubnav projectId={projectId} />
@@ -129,9 +133,11 @@ export default function ProjectMembers() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-slate-500">{getField(member, "role")}</span>
-                <Button variant="ghost" onClick={() => setRemoving(member)}>
-                  Remove
-                </Button>
+                {isAdmin ? (
+                  <Button variant="ghost" onClick={() => setRemoving(member)}>
+                    Remove
+                  </Button>
+                ) : null}
               </div>
             </li>
           );

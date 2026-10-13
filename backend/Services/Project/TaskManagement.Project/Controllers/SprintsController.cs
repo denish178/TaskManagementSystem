@@ -37,10 +37,26 @@ public class SprintsController : ControllerBase
         return null;
     }
 
+    private IActionResult? RequireAdmin()
+    {
+        if (!ProjectAccessService.IsAdmin(User))
+        {
+            return Forbid();
+        }
+
+        return null;
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateSprint(
         CreateSprintRequest request)
     {
+        var adminDenied = RequireAdmin();
+        if (adminDenied != null)
+        {
+            return adminDenied;
+        }
+
         if (request.ProjectId == Guid.Empty)
         {
             return BadRequest(new
@@ -164,6 +180,12 @@ public class SprintsController : ControllerBase
         Guid sprintId,
         UpdateSprintRequest request)
     {
+        var adminDenied = RequireAdmin();
+        if (adminDenied != null)
+        {
+            return adminDenied;
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(new
@@ -211,6 +233,12 @@ public class SprintsController : ControllerBase
     public async Task<IActionResult> DeleteSprint(
         Guid sprintId)
     {
+        var adminDenied = RequireAdmin();
+        if (adminDenied != null)
+        {
+            return adminDenied;
+        }
+
         var sprint = await _context.Sprints
             .FirstOrDefaultAsync(x => x.Id == sprintId);
 

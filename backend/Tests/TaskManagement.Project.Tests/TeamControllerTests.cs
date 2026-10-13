@@ -27,7 +27,8 @@ public class TeamControllerTests
 
     private static TeamsController CreateController(
         ProjectDbContext context,
-        Guid? userId = null)
+        Guid? userId = null,
+        string role = "Admin")
     {
         var id = userId ?? Guid.NewGuid();
         var controller = new TeamsController(
@@ -42,7 +43,7 @@ public class TeamControllerTests
                     new ClaimsIdentity(
                         [
                             new Claim(ClaimTypes.NameIdentifier, id.ToString()),
-                            new Claim(ClaimTypes.Role, "Admin"),
+                            new Claim(ClaimTypes.Role, role),
                         ],
                         "TestAuth")),
             },
@@ -87,6 +88,18 @@ public class TeamControllerTests
         Assert.Equal(
             "Backend development team",
             team.Description);
+    }
+
+    [Fact]
+    public async Task CreateTeam_NonAdmin_ReturnsForbid()
+    {
+        await using var context = CreateContext();
+        var controller = CreateController(context, role: "User");
+
+        var result = await controller.CreateTeam(
+            new CreateTeamRequest("Ops", null, Guid.NewGuid()));
+
+        Assert.IsType<ForbidResult>(result);
     }
 
     [Fact]

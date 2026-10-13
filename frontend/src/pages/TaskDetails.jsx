@@ -218,9 +218,11 @@ export default function TaskDetails() {
             <Button variant="secondary" onClick={() => setEditOpen(true)}>
               Edit
             </Button>
-            <Button variant="ghost" onClick={() => setDeleteOpen(true)}>
-              Delete
-            </Button>
+            {isAdmin ? (
+              <Button variant="ghost" onClick={() => setDeleteOpen(true)}>
+                Delete
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -245,21 +247,29 @@ export default function TaskDetails() {
                     aria-label={`Mark ${getField(subtask, "title")} complete`}
                   />
                   <span className="flex-1 text-sm">{getField(subtask, "title")}</span>
-                  <Button variant="ghost" onClick={() => deleteSubtask(subtask)}>
-                    Remove
-                  </Button>
+                  {isAdmin ? (
+                    <Button variant="ghost" onClick={() => deleteSubtask(subtask)}>
+                      Remove
+                    </Button>
+                  ) : null}
                 </li>
               ))}
             </ul>
-            <form className="mt-4 flex gap-2" onSubmit={addSubtask}>
-              <input
-                className={inputClassName}
-                value={subtaskTitle}
-                onChange={(event) => setSubtaskTitle(event.target.value)}
-                placeholder="New subtask"
-              />
-              <Button type="submit">Add</Button>
-            </form>
+            {isAdmin ? (
+              <form className="mt-4 flex gap-2" onSubmit={addSubtask}>
+                <input
+                  className={inputClassName}
+                  value={subtaskTitle}
+                  onChange={(event) => setSubtaskTitle(event.target.value)}
+                  placeholder="New subtask"
+                />
+                <Button type="submit">Add</Button>
+              </form>
+            ) : (
+              <p className="mt-3 text-sm text-slate-500">
+                Only Admin users can add or remove subtasks.
+              </p>
+            )}
           </section>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
