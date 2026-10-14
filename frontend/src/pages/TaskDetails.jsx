@@ -229,13 +229,13 @@ export default function TaskDetails() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <section className="card card-pad">
             <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700 dark:text-slate-300">
               {getField(task, "description") || "No description"}
             </p>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <section className="card card-pad">
             <h2 className="mb-3 font-semibold">Subtasks</h2>
             <ul className="space-y-2">
               {subtasks.map((subtask) => (
@@ -272,7 +272,7 @@ export default function TaskDetails() {
             )}
           </section>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="card card-pad">
             <CommentThread
               taskId={taskId}
               comments={comments}
@@ -282,7 +282,7 @@ export default function TaskDetails() {
             />
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="card card-pad">
             <FilePanel
               taskId={taskId}
               files={files}
@@ -402,7 +402,7 @@ export default function TaskDetails() {
 
 function MetaCard({ title, children }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <section className="card card-pad-sm">
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
         {title}
       </h3>

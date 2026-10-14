@@ -74,7 +74,7 @@ export default function MyTasks() {
           ))}
         </select>
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div className="table-shell">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-slate-200 text-slate-500 dark:border-slate-800">
             <tr>

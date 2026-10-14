@@ -83,7 +83,7 @@ export default function FilePanel({
     <section>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Attachments</h2>
-        <label className="inline-flex cursor-pointer items-center rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">
+        <label className="btn btn-primary cursor-pointer">
           Upload
           <input
             type="file"

@@ -134,7 +134,7 @@ export default function GlobalSearch() {
       </label>
 
       <Search
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-text-muted)]"
         size={16}
       />
 
@@ -148,11 +148,11 @@ export default function GlobalSearch() {
         onFocus={() => setOpen(true)}
         placeholder="Search projects, tasks, users"
         autoComplete="off"
-        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-950"
+        className="search-input"
       />
 
       {open && hasQuery && (
-        <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
+        <div className="dropdown-panel absolute z-30 mt-2 w-full overflow-hidden">
           {loading && (
             <p className="px-4 py-3 text-sm text-slate-500">
               Searching...

@@ -22,7 +22,7 @@ export default function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 p-4 sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-stone-900/45 p-4 sm:items-center">
       <button
         type="button"
         aria-label="Close dialog backdrop"
@@ -33,10 +33,10 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={`relative z-10 w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900 ${wide ? "max-w-3xl" : "max-w-lg"}`}
+        className={`card card-pad relative z-10 w-full ${wide ? "max-w-3xl" : "max-w-lg"}`}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 id="modal-title" className="text-lg font-semibold text-slate-900 dark:text-white">
+          <h2 id="modal-title" className="text-lg font-semibold">
             {title}
           </h2>
           <Button variant="ghost" onClick={onClose} aria-label="Close">

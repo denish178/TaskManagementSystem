@@ -17,22 +17,22 @@ export default function TaskCard({ task, usersById = {}, dragHandleProps }) {
 
   return (
     <article
-      className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+      className="task-card"
       {...dragHandleProps}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
-        <p className="text-[11px] font-semibold tracking-wide text-slate-400">
+        <p className="text-[11px] font-medium text-[var(--app-text-muted)]">
           {shortId(id)}
         </p>
         <PriorityBadge priority={priority} />
       </div>
       <Link
         to={`/tasks/${id}`}
-        className="block text-sm font-semibold text-slate-900 hover:text-indigo-600 dark:text-white"
+        className="block text-sm font-semibold hover:text-link"
       >
         {title}
       </Link>
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--app-text-muted)]">
         <StatusBadge status={status} />
         {dueDate ? (
           <span className={overdue ? "flex items-center gap-1 text-rose-600" : "flex items-center gap-1"}>

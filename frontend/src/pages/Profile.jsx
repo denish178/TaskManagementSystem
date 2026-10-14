@@ -81,7 +81,7 @@ export default function Profile() {
   return (
     <div className="max-w-2xl space-y-8">
       <PageHeader title="Profile" subtitle="Account details from the Auth Service." />
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <section className="card card-pad">
         <p className="text-sm text-slate-500">
           Role: <strong>{user?.role}</strong>
           {profile?.createdAt ? (
@@ -112,7 +112,7 @@ export default function Profile() {
         </form>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <section className="card card-pad">
         <h2 className="font-semibold">Preferences</h2>
         <p className="mt-1 text-sm text-slate-500">
           Theme is stored locally in your browser ({theme}).
@@ -122,7 +122,7 @@ export default function Profile() {
         </Button>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <section className="card card-pad">
         <h2 className="font-semibold">Change password</h2>
         <form
           className="mt-4 space-y-4"

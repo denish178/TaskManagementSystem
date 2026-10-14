@@ -78,7 +78,7 @@ export default function MyWorkspace() {
 
 function TaskGroup({ title, tasks, empty }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <section className="card card-pad">
       <h2 className="mb-3 font-semibold">{title}</h2>
       {tasks.length === 0 ? (
         <p className="text-sm text-slate-500">{empty}</p>

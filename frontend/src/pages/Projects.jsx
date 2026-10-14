@@ -222,7 +222,7 @@ export default function Projects() {
         }
       />
       {teams.length > 0 ? (
-        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <section className="card card-pad-sm mb-6">
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Your teams</h2>
           <ul className="mt-3 flex flex-wrap gap-2">
             {teams.map((team) => (
@@ -268,7 +268,7 @@ export default function Projects() {
           {filtered.map((project) => (
             <article
               key={getField(project, "id")}
-              className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+              className="card card-pad"
             >
               <h2 className="text-lg font-semibold">
                 <Link to={`/projects/${getField(project, "id")}`}>

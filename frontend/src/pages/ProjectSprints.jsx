@@ -151,7 +151,7 @@ export default function ProjectSprints() {
           return (
             <li
               key={id}
-              className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+              className="card card-pad"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -188,7 +188,7 @@ export default function ProjectSprints() {
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                     <div
-                      className="h-full bg-indigo-600"
+                      className="progress-fill"
                       style={{ width: `${Math.min(percent, 100)}%` }}
                     />
                   </div>
