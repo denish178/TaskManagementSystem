@@ -81,7 +81,7 @@ export default function ProjectOverview() {
         <Metric label="Done" value={counts.done ?? counts.Done ?? "—"} />
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <section className="card card-pad">
           <h2 className="mb-3 font-semibold">Recent tasks</h2>
           <ul className="space-y-3">
             {tasks.slice(0, 6).map((task) => (
@@ -92,7 +92,7 @@ export default function ProjectOverview() {
             ))}
           </ul>
         </section>
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <section className="card card-pad">
           <h2 className="mb-3 font-semibold">Sprints</h2>
           <ul className="space-y-3 text-sm">
             {sprints.map((sprint) => (
@@ -107,7 +107,7 @@ export default function ProjectOverview() {
           </ul>
         </section>
       </div>
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <section className="mt-6 card card-pad">
         <h2 className="mb-3 font-semibold">Members</h2>
         <ul className="grid gap-3 md:grid-cols-2">
           {members.map((member) => {
@@ -126,7 +126,7 @@ export default function ProjectOverview() {
 
 function Metric({ label, value }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <article className="card card-pad-sm">
       <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold">{value}</p>
     </article>

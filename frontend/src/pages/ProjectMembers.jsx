@@ -115,7 +115,7 @@ export default function ProjectMembers() {
         }
       />
       <ProjectSubnav projectId={projectId} />
-      <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+      <ul className="table-shell divide-y divide-[var(--app-border)]">
         {members.map((member) => {
           const userId = getField(member, "userId");
           const user = usersById[userId];

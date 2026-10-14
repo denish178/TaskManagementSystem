@@ -197,7 +197,7 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-5">
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 xl:col-span-2">
+        <section className="card card-pad xl:col-span-2">
           <h2 className="mb-4 text-base font-semibold">Task status</h2>
           {statusTotals ? (
             <>
@@ -227,7 +227,7 @@ export default function Dashboard() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 xl:col-span-3">
+        <section className="card card-pad xl:col-span-3">
           <h2 className="mb-4 text-base font-semibold">Sprint progress</h2>
           {sprintProgress.length === 0 ? (
             <EmptyState title="No sprint progress" description="Create a sprint, then dashboard progress will appear here." />
@@ -245,7 +245,7 @@ export default function Dashboard() {
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                       <div
-                        className="h-full bg-indigo-600"
+                        className="progress-fill"
                         style={{ width: `${Math.min(percent, 100)}%` }}
                       />
                     </div>
@@ -257,7 +257,7 @@ export default function Dashboard() {
         </section>
       </div>
 
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <section className="mt-6 card card-pad">
         <h2 className="mb-4 text-base font-semibold">Overdue work</h2>
         {overdueTasks.length === 0 ? (
           <EmptyState icon={FolderKanban} title="No overdue tasks" />
@@ -265,7 +265,7 @@ export default function Dashboard() {
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {overdueTasks.slice(0, 8).map((task) => (
               <li key={getField(task, "id")} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <Link className="font-medium hover:text-indigo-600" to={`/tasks/${getField(task, "id")}`}>
+                <Link className="font-medium hover:text-link" to={`/tasks/${getField(task, "id")}`}>
                   {getField(task, "title")}
                 </Link>
                 <div className="flex items-center gap-3 text-sm text-slate-500">
@@ -285,7 +285,7 @@ export default function Dashboard() {
             <Link
               key={getField(project, "id")}
               to={`/projects/${getField(project, "id")}`}
-              className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-indigo-200 dark:border-slate-800 dark:bg-slate-900"
+              className="card card-pad-sm transition hover:border-[var(--app-accent)]"
             >
               <h3 className="font-semibold">{getField(project, "name")}</h3>
               <p className="mt-1 line-clamp-2 text-sm text-slate-500">
@@ -301,8 +301,8 @@ export default function Dashboard() {
 
 function StatCard({ title, value }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-sm text-slate-500">{title}</p>
+    <article className="card card-pad">
+      <p className="text-sm text-[var(--app-text-muted)]">{title}</p>
       <p className="mt-3 text-3xl font-semibold">{value}</p>
     </article>
   );

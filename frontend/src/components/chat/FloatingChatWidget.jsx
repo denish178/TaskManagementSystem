@@ -100,29 +100,29 @@ export default function FloatingChatWidget() {
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open ? (
-        <section
-          className="pointer-events-auto flex h-[min(32rem,70vh)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
-          aria-label="Task assistant chat"
-        >
-          <header className="flex items-center justify-between border-b border-slate-200 bg-indigo-600 px-4 py-3 text-white dark:border-slate-700">
+        <section className="chat-panel" aria-label="Task assistant chat">
+          <header className="flex items-center justify-between border-b border-[var(--app-border)] px-4 py-3">
             <div className="flex items-center gap-2">
-              <Bot size={20} aria-hidden />
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--app-accent)] text-white dark:text-stone-900"
+                aria-hidden
+              >
+                <Bot size={16} />
+              </span>
               <div>
                 <p className="text-sm font-semibold">Task assistant</p>
-                <p className="text-xs text-indigo-100">Ask about your projects & tasks</p>
+                <p className="text-xs text-[var(--app-text-muted)]">
+                  Projects, tasks, and sprints
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                className="rounded-lg px-2 py-1 text-xs text-indigo-100 hover:bg-indigo-500/50"
-                onClick={clearChat}
-              >
+              <button type="button" className="icon-btn text-xs" onClick={clearChat}>
                 Clear
               </button>
               <button
                 type="button"
-                className="rounded-lg p-1.5 hover:bg-indigo-500/50"
+                className="icon-btn"
                 onClick={() => setOpen(false)}
                 aria-label="Close chat"
               >
@@ -131,12 +131,9 @@ export default function FloatingChatWidget() {
             </div>
           </header>
 
-          <div
-            ref={listRef}
-            className="flex-1 space-y-3 overflow-y-auto px-4 py-3"
-          >
+          <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
             {messages.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-[var(--app-text-muted)]">
                 Try: &quot;How many tasks are in Testing?&quot; or &quot;List my open
                 projects.&quot;
               </p>
@@ -150,26 +147,26 @@ export default function FloatingChatWidget() {
                 >
                   {!isUser ? (
                     <span
-                      className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200"
+                      className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--app-accent-soft)] text-[var(--app-accent-text)]"
                       aria-hidden
                     >
                       <Bot size={14} />
                     </span>
                   ) : null}
                   <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+                    className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
                       isUser
-                        ? "bg-indigo-600 text-white"
+                        ? "bg-[var(--app-accent)] text-white dark:text-stone-900"
                         : msg.isError
-                          ? "bg-rose-50 text-rose-800 dark:bg-rose-950 dark:text-rose-100"
-                          : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                          ? "alert-error"
+                          : "border border-[var(--app-border)] bg-[var(--app-bg)]"
                     }`}
                   >
                     {isUser ? msg.content : formatAssistantText(msg.content)}
                   </div>
                   {isUser ? (
                     <span
-                      className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                      className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text-muted)]"
                       aria-hidden
                     >
                       <UserRound size={14} />
@@ -179,16 +176,16 @@ export default function FloatingChatWidget() {
               );
             })}
             {sending ? (
-              <p className="text-xs text-slate-500 animate-pulse">Thinking…</p>
+              <p className="text-xs text-[var(--app-text-muted)] animate-pulse">Thinking…</p>
             ) : null}
           </div>
 
           <form
             onSubmit={handleSend}
-            className="border-t border-slate-200 p-3 dark:border-slate-700"
+            className="border-t border-[var(--app-border)] p-3"
           >
             {error ? (
-              <p className="mb-2 text-xs text-rose-600 dark:text-rose-400">{error}</p>
+              <p className="mb-2 text-xs text-[var(--app-danger)]">{error}</p>
             ) : null}
             <div className="flex gap-2">
               <input
@@ -197,7 +194,7 @@ export default function FloatingChatWidget() {
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 placeholder="Ask about tasks, sprints, projects…"
-                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+                className="input min-w-0 flex-1"
                 disabled={sending}
                 aria-label="Chat message"
               />
@@ -212,7 +209,7 @@ export default function FloatingChatWidget() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+        className="chat-fab"
         aria-label={open ? "Close task assistant" : "Open task assistant"}
         aria-expanded={open}
       >

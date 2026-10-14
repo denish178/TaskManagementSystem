@@ -35,11 +35,11 @@ export default function KanbanBoard({
               <section
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className="min-h-[24rem] rounded-2xl bg-slate-100 p-3 dark:bg-slate-900/70"
+                className="kanban-column"
               >
                 <div className="mb-3 flex items-center justify-between px-1">
                   <h2 className="text-sm font-semibold">{column.label}</h2>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-xs dark:bg-slate-800">
+                  <span className="rounded-full border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-0.5 text-xs text-[var(--app-text-muted)]">
                     {grouped[column.value].length}
                   </span>
                 </div>

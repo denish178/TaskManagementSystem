@@ -13,10 +13,10 @@ export const TASK_PRIORITIES = [
 ];
 
 export const STATUS_COLORS = {
-  Todo: "#64748b",
-  InProgress: "#2563eb",
-  Testing: "#d97706",
-  Done: "#059669",
+  Todo: "#78716c",
+  InProgress: "#0f766e",
+  Testing: "#b45309",
+  Done: "#047857",
 };
 
 export const FILE_MAX_BYTES = 10 * 1024 * 1024;

@@ -33,20 +33,12 @@ export default function Register() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-slate-50 px-4 dark:bg-slate-950">
-      <form
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-        onSubmit={handleSubmit(onSubmit)}
-        noValidate
-      >
-        <h1 className="text-2xl font-semibold">Create an account</h1>
-        <p className="mt-1 mb-6 text-sm text-slate-500">
-          New accounts are created with the User role.
-        </p>
+    <div className="grid min-h-screen place-items-center px-4">
+      <form className="auth-card" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <h1 className="page-title">Create an account</h1>
+        <p className="page-lead mb-6">New accounts are created with the User role.</p>
         {error ? (
-          <p className="mb-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700" role="alert">
-            {error}
-          </p>
+          <p className="alert-error mb-4" role="alert">{error}</p>
         ) : null}
         <div className="space-y-4">
           <Field id="name" label="Name" error={errors.name?.message}>
@@ -67,9 +59,9 @@ export default function Register() {
         <Button type="submit" className="mt-6 w-full" disabled={isSubmitting}>
           {isSubmitting ? "Creating..." : "Register"}
         </Button>
-        <p className="mt-4 text-center text-sm text-slate-500">
+        <p className="mt-4 text-center text-sm text-[var(--app-text-muted)]">
           Already registered?{" "}
-          <Link className="font-medium text-indigo-600" to="/login">
+          <Link className="text-link" to="/login">
             Sign in
           </Link>
         </p>
