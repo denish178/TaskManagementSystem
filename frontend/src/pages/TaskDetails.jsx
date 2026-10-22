@@ -11,9 +11,11 @@ import StatusBadge from "../components/common/StatusBadge";
 import PriorityBadge from "../components/common/PriorityBadge";
 import TaskForm from "../components/task/TaskForm";
 import CommentThread from "../components/comment/CommentThread";
+import TaskCompletionFeedback from "../components/task/TaskCompletionFeedback";
 import FilePanel from "../components/file/FilePanel";
 import Field, { inputClassName } from "../components/common/Field";
 import taskService from "../services/taskService";
+import projectService from "../services/projectService";
 import sprintService from "../services/sprintService";
 import commentService from "../services/commentService";
 import fileService from "../services/fileService";
@@ -29,6 +31,7 @@ export default function TaskDetails() {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const [task, setTask] = useState(null);
+  const [project, setProject] = useState(null);
   const [sprints, setSprints] = useState([]);
   const [comments, setComments] = useState([]);
   const [files, setFiles] = useState([]);
@@ -42,23 +45,29 @@ export default function TaskDetails() {
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
   const [auditTrail, setAuditTrail] = useState([]);
+  const [completionFeedback, setCompletionFeedback] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
+    setProject(null);
     try {
       const taskData = await taskService.getById(taskId);
       setTask(taskData);
       setAssigneeId(getField(taskData, "assigneeId") || "");
       const projectId = getField(taskData, "projectId");
-      const [commentList, fileList, userList, sprintList, auditList] =
+      const [commentList, fileList, userList, sprintList, auditList, projectData, feedbackData] =
         await Promise.all([
         commentService.listByTask(taskId),
         fileService.listByTask(taskId),
         authService.getUsers(),
         projectId ? sprintService.listByProject(projectId) : Promise.resolve([]),
         taskService.getAudit(taskId),
+        projectId ? projectService.getById(projectId) : Promise.resolve(null),
+        commentService.getCompletionFeedback(taskId).catch(() => null),
       ]);
+      setCompletionFeedback(feedbackData);
+      setProject(projectData);
       setComments(commentList);
       setAuditTrail(auditList);
       setFiles(fileList);
@@ -194,8 +203,16 @@ export default function TaskDetails() {
   if (!task) return null;
 
   const subtasks = getField(task, "subTasks") || getField(task, "SubTasks") || [];
+  const canComment =
+    Boolean(getField(task, "canComment")) ||
+    (!isAdmin && getField(task, "assigneeId") === user?.id);
+  const canUpdateStatus =
+    Boolean(getField(task, "canUpdateStatus")) ||
+    isAdmin ||
+    getField(task, "assigneeId") === user?.id;
   const assignee = usersById[getField(task, "assigneeId")];
   const projectId = getField(task, "projectId");
+  const projectName = getField(project, "name");
 
   return (
     <div>
@@ -206,7 +223,9 @@ export default function TaskDetails() {
             {projectId ? (
               <>
                 {" / "}
-                <Link to={`/projects/${projectId}`}>Project</Link>
+                <Link to={`/projects/${projectId}`}>
+                  {projectName || "Project"}
+                </Link>
               </>
             ) : null}
           </>
@@ -265,11 +284,7 @@ export default function TaskDetails() {
                 />
                 <Button type="submit">Add</Button>
               </form>
-            ) : (
-              <p className="mt-3 text-sm text-slate-500">
-                Only Admin users can add or remove subtasks.
-              </p>
-            )}
+            ) : null}
           </section>
 
           <div className="card card-pad">
@@ -278,9 +293,19 @@ export default function TaskDetails() {
               comments={comments}
               usersById={usersById}
               currentUser={user}
+              canComment={canComment}
               onChange={load}
             />
           </div>
+
+          <TaskCompletionFeedback
+            taskId={taskId}
+            task={task}
+            feedbackRecord={completionFeedback}
+            isAdmin={isAdmin}
+            usersById={usersById}
+            onSaved={load}
+          />
 
           <div className="card card-pad">
             <FilePanel
@@ -296,18 +321,20 @@ export default function TaskDetails() {
         <aside className="space-y-4">
           <MetaCard title="Status">
             <StatusBadge status={getField(task, "status")} />
-            <Field id="status" label="Change status">
-              <select
-                id="status"
-                className={inputClassName}
-                value={getField(task, "status")}
-                onChange={(event) => changeStatus(event.target.value)}
-              >
-                {TASK_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
-            </Field>
+            {canUpdateStatus ? (
+              <Field id="status" label="Change status">
+                <select
+                  id="status"
+                  className={inputClassName}
+                  value={getField(task, "status")}
+                  onChange={(event) => changeStatus(event.target.value)}
+                >
+                  {TASK_STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+              </Field>
+            ) : null}
           </MetaCard>
           <MetaCard title="Priority">
             <PriorityBadge priority={getField(task, "priority")} />
@@ -336,11 +363,7 @@ export default function TaskDetails() {
                   Assign
                 </Button>
               </div>
-            ) : (
-              <p className="mt-2 text-xs text-slate-500">
-                Only Admin users can assign or reassign tasks.
-              </p>
-            )}
+            ) : null}
           </MetaCard>
           <MetaCard title="Updated">
             <p className="text-sm">{formatDateTime(getField(task, "updatedAt"))}</p>

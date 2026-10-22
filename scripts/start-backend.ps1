@@ -103,7 +103,18 @@ foreach ($service in $services) {
       Remove-Item Env:ConnectionStrings__AzureSql -ErrorAction SilentlyContinue
     }
     "Comment" {
-      $env:MongoDb__ConnectionString = "mongodb://127.0.0.1:27018"
+      $mongo = $env:MONGODB_ATLAS_CONNECTION_STRING
+      if ([string]::IsNullOrWhiteSpace($mongo)) {
+        $mongo = $env:MONGODB_CONNECTION_STRING
+      }
+      if ([string]::IsNullOrWhiteSpace($mongo)) {
+        $mongo = "mongodb://127.0.0.1:27018"
+      }
+      $env:MongoDb__ConnectionString = $mongo
+      if ($env:MONGODB_DATABASE_NAME) {
+        $env:MongoDb__DatabaseName = $env:MONGODB_DATABASE_NAME
+      }
+      $env:ServiceUrls__Task = "http://localhost:5266"
       if ($redisSignalR) { $env:SignalR__Redis__Configuration = "localhost:6379" }
       Remove-Item Env:ConnectionStrings__AzureSql -ErrorAction SilentlyContinue
     }

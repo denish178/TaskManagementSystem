@@ -226,6 +226,9 @@ public class TasksController : ControllerBase
                 || x.CreatedBy == userId);
         }
 
+        var isAdmin = IsAdmin;
+        var currentUserId = isAdmin ? Guid.Empty : GetCurrentUserId();
+
         var tasks = await query
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new
@@ -246,7 +249,10 @@ public class TasksController : ControllerBase
                 SubTaskCount = x.SubTasks.Count,
 
                 CompletedSubTaskCount =
-                    x.SubTasks.Count(s => s.IsCompleted)
+                    x.SubTasks.Count(s => s.IsCompleted),
+
+                canUpdateStatus = isAdmin
+                    || (x.AssigneeId != null && x.AssigneeId == currentUserId),
             })
             .ToListAsync();
 
@@ -289,35 +295,8 @@ public class TasksController : ControllerBase
     {
         var task = await _context.Tasks
             .AsNoTracking()
-            .Where(x => x.Id == taskId)
-            .Select(x => new
-            {
-                x.Id,
-                x.ProjectId,
-                x.SprintId,
-                x.Title,
-                x.Description,
-                x.Status,
-                x.Priority,
-                x.AssigneeId,
-                x.CreatedBy,
-                x.DueDate,
-                x.CreatedAt,
-                x.UpdatedAt,
-
-                SubTasks = x.SubTasks
-                    .OrderBy(s => s.CreatedAt)
-                    .Select(s => new
-                    {
-                        s.Id,
-                        s.TaskId,
-                        s.Title,
-                        s.IsCompleted,
-                        s.CreatedAt
-                    })
-                    .ToList()
-            })
-            .FirstOrDefaultAsync();
+            .Include(x => x.SubTasks)
+            .FirstOrDefaultAsync(x => x.Id == taskId);
 
         if (task == null)
         {
@@ -327,16 +306,51 @@ public class TasksController : ControllerBase
             });
         }
 
-        if (!await _authorization.CanAccessTaskFromPartsAsync(
-                User,
-                task.ProjectId,
-                task.AssigneeId,
-                task.CreatedBy))
+        if (!await _authorization.CanAccessTaskAsync(User, task))
         {
             return Forbid();
         }
 
-        return Ok(task);
+        return Ok(BuildTaskResponse(task));
+    }
+
+    [HttpGet("{taskId:guid}/comment-eligibility")]
+    public async Task<IActionResult> GetCommentEligibility(Guid taskId)
+    {
+        var task = await _context.Tasks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == taskId);
+
+        if (task == null)
+        {
+            return NotFound(new { message = "Task not found." });
+        }
+
+        if (!await _authorization.CanAccessTaskAsync(User, task))
+        {
+            return Forbid();
+        }
+
+        if (IsAdmin)
+        {
+            return Ok(new
+            {
+                allowed = false,
+                reason = "Admins cannot comment on tasks.",
+            });
+        }
+
+        var userId = GetCurrentUserId();
+        if (task.AssigneeId != userId)
+        {
+            return Ok(new
+            {
+                allowed = false,
+                reason = "Only the assigned user can comment on this task.",
+            });
+        }
+
+        return Ok(new { allowed = true });
     }
 
     // =========================================================
@@ -504,15 +518,31 @@ public class TasksController : ControllerBase
             return Forbid();
         }
 
+        if (!_authorization.CanUpdateTaskStatus(User, task))
+        {
+            return Forbid();
+        }
+
         var previousStatus = task.Status;
         task.Status = status;
         task.UpdatedAt = DateTime.UtcNow;
+
+        var actorId = GetCurrentUserId();
+        if (string.Equals(status, "Done", StringComparison.Ordinal)
+            && !string.Equals(previousStatus, "Done", StringComparison.Ordinal))
+        {
+            task.CompletedByUserId = actorId;
+        }
+        else if (!string.Equals(status, "Done", StringComparison.Ordinal)
+                 && string.Equals(previousStatus, "Done", StringComparison.Ordinal))
+        {
+            task.CompletedByUserId = null;
+        }
 
         await _context.SaveChangesAsync();
 
         if (!string.Equals(previousStatus, status, StringComparison.Ordinal))
         {
-            var actorId = CurrentUser.GetUserId(User);
             await _audit.RecordAsync(
                 task.Id,
                 actorId,
@@ -826,5 +856,44 @@ public class TasksController : ControllerBase
             x => x.Equals(
                 status.Trim(),
                 StringComparison.OrdinalIgnoreCase));
+    }
+
+    private object BuildTaskResponse(TaskItem task)
+    {
+        var userId = IsAdmin ? (Guid?)null : GetCurrentUserId();
+
+        return new
+        {
+            task.Id,
+            task.ProjectId,
+            task.SprintId,
+            task.Title,
+            task.Description,
+            task.Status,
+            task.Priority,
+            task.AssigneeId,
+            task.CreatedBy,
+            task.DueDate,
+            task.CreatedAt,
+            task.UpdatedAt,
+            task.CompletedByUserId,
+            canSubmitCompletionFeedback = !IsAdmin
+                && string.Equals(task.Status, "Done", StringComparison.Ordinal)
+                && task.CompletedByUserId == userId,
+            canComment = !IsAdmin && task.AssigneeId == userId,
+            canUpdateStatus = IsAdmin
+                || (task.AssigneeId.HasValue && task.AssigneeId == userId),
+            subTasks = task.SubTasks
+                .OrderBy(s => s.CreatedAt)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.TaskId,
+                    s.Title,
+                    s.IsCompleted,
+                    s.CreatedAt,
+                })
+                .ToList(),
+        };
     }
 }

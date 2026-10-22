@@ -67,6 +67,7 @@ const taskService = {
   async removeSubtask(taskId, subtaskId) {
     await api.delete(`/api/tasks/${taskId}/subtasks/${subtaskId}`);
   },
+
 };
 
 export default taskService;

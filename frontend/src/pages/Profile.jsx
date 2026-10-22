@@ -80,7 +80,7 @@ export default function Profile() {
 
   return (
     <div className="max-w-2xl space-y-8">
-      <PageHeader title="Profile" subtitle="Account details from the Auth Service." />
+      <PageHeader title="Profile" />
       <section className="card card-pad">
         <p className="text-sm text-slate-500">
           Role: <strong>{user?.role}</strong>

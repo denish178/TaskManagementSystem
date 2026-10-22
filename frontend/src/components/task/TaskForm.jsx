@@ -97,9 +97,6 @@ export default function TaskForm({
           ))}
         </select>
       </Field>
-      <p className="text-xs text-slate-500">
-        Task assignment is available only to Admin users after the task is created.
-      </p>
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onCancel} disabled={submitting}>
           Cancel

@@ -13,6 +13,7 @@ export default function CommentThread({
   comments,
   usersById,
   currentUser,
+  canComment = true,
   onChange,
 }) {
   const [content, setContent] = useState("");
@@ -121,22 +122,24 @@ export default function CommentThread({
           })}
         </ul>
       )}
-      <form className="mt-4 space-y-2" onSubmit={addComment}>
-        <label htmlFor="comment" className="sr-only">
-          Add a comment
-        </label>
-        <textarea
-          id="comment"
-          className={inputClassName}
-          rows={3}
-          value={content}
-          onChange={(event) => setContent(event.target.value)}
-          placeholder="Write a comment"
-        />
-        <Button type="submit" disabled={saving || !content.trim()}>
-          {saving ? "Posting..." : "Post comment"}
-        </Button>
-      </form>
+      {canComment ? (
+        <form className="mt-4 space-y-2" onSubmit={addComment}>
+          <label htmlFor="comment" className="sr-only">
+            Add a comment
+          </label>
+          <textarea
+            id="comment"
+            className={inputClassName}
+            rows={3}
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            placeholder="Write a comment"
+          />
+          <Button type="submit" disabled={saving || !content.trim()}>
+            {saving ? "Posting..." : "Post comment"}
+          </Button>
+        </form>
+      ) : null}
     </section>
   );
 }

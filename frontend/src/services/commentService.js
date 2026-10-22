@@ -20,6 +20,22 @@ const commentService = {
   async remove(commentId) {
     await api.delete(`/api/comments/${commentId}`);
   },
+
+  async getCompletionFeedback(taskId, signal) {
+    const response = await api.get(
+      `/api/comments/task/${taskId}/completion-feedback`,
+      { signal },
+    );
+    return response.data;
+  },
+
+  async submitCompletionFeedback(taskId, content) {
+    const response = await api.put(
+      `/api/comments/task/${taskId}/completion-feedback`,
+      { content },
+    );
+    return response.data;
+  },
 };
 
 export default commentService;

@@ -9,5 +9,8 @@ export default defineConfig({
     globals: true,
     setupFiles: "./src/test/setup.js",
     exclude: ["**/node_modules/**", "**/dist/**", "e2e/**"],
+    // forks pool often times out on Windows (e.g. OneDrive paths); threads is stable in CI and locally
+    pool: "threads",
+    testTimeout: 30_000,
   },
 });

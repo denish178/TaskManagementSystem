@@ -20,9 +20,14 @@ const items = [
   { to: "/profile", label: "Profile", icon: UserRound },
 ];
 
+const userOnlyPaths = new Set(["/my-workspace", "/my-tasks"]);
+
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onClose }) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { projectId } = useParams();
+  const navItems = isAdmin
+    ? items.filter((item) => !userOnlyPaths.has(item.to))
+    : items;
 
   return (
     <>
@@ -57,7 +62,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onClose }) {
         </div>
 
         <nav className="flex-1 space-y-0.5 px-3">
-          {items.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

@@ -26,13 +26,16 @@ public class TasksControllerTests
 
     private static TasksController CreateController(
         TaskDbContext context,
-        IProjectAccessClient? projectAccess = null)
+        IProjectAccessClient? projectAccess = null,
+        string role = "Admin",
+        Guid? userId = null)
     {
+        var actorId = userId ?? Guid.NewGuid();
         var identity = new ClaimsIdentity(
             new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.Role, "Admin"),
+                new Claim(ClaimTypes.NameIdentifier, actorId.ToString()),
+                new Claim(ClaimTypes.Role, role),
             },
             "TestAuth");
 
@@ -642,6 +645,40 @@ public class TasksControllerTests
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task UpdateStatus_WhenUserNotAssignee_ReturnsForbid()
+    {
+        using var context = CreateContext();
+        var assigneeId = Guid.NewGuid();
+        var otherUserId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+
+        context.Tasks.Add(new TaskItem
+        {
+            Id = taskId,
+            ProjectId = Guid.NewGuid(),
+            Title = "Assigned elsewhere",
+            Status = "Todo",
+            Priority = "Medium",
+            AssigneeId = assigneeId,
+            CreatedBy = assigneeId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await context.SaveChangesAsync();
+
+        var controller = CreateController(
+            context,
+            role: "User",
+            userId: otherUserId);
+
+        var result = await controller.UpdateStatus(
+            taskId,
+            new UpdateTaskStatusRequest("InProgress"));
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task UpdateStatus_WithEmptyStatus_ReturnsBadRequest()
     {
         using var context = CreateContext();
@@ -1051,6 +1088,34 @@ public class TasksControllerTests
             0,
             root.GetProperty("progressPercentage").GetDouble());
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetCommentEligibility_Admin_ReturnsNotAllowed()
+    {
+        using var context = CreateContext();
+        var assigneeId = Guid.NewGuid();
+        var task = new TaskItem
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = Guid.NewGuid(),
+            Title = "T",
+            Status = "InProgress",
+            AssigneeId = assigneeId,
+            CreatedBy = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        context.Tasks.Add(task);
+        await context.SaveChangesAsync();
+
+        var controller = CreateController(context);
+        var result = await controller.GetCommentEligibility(task.Id);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value);
+        using var doc = JsonDocument.Parse(json);
+        Assert.False(doc.RootElement.GetProperty("allowed").GetBoolean());
+    }
+
 }
 
 

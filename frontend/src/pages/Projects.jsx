@@ -209,7 +209,6 @@ export default function Projects() {
     <div>
       <PageHeader
         title="Projects"
-        subtitle="Projects belong to a team in the Project Service."
         actions={
           isAdmin ? (
             <>
@@ -373,7 +372,7 @@ export default function Projects() {
       <ConfirmDialog
         open={Boolean(deleting)}
         title="Delete project"
-        message="This removes the project from the Project Service. This cannot be undone."
+        message="Delete this project permanently? This cannot be undone."
         confirmLabel="Delete"
         loading={saving}
         onClose={() => setDeleting(null)}

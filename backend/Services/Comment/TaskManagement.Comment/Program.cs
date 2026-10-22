@@ -2,6 +2,7 @@ using Microsoft.OpenApi;
 using MongoDB.Driver;
 using TaskManagement.Comment.Hubs;
 using TaskManagement.Comment.Repositories;
+using TaskManagement.Comment.Services;
 using TaskManagement.Shared.Auth;
 using TaskManagement.Shared.Health;
 using TaskManagement.Shared.SignalR;
@@ -47,6 +48,22 @@ builder.Services.AddSingleton<IMongoDatabase>(
     mongoClient.GetDatabase(mongoDatabaseName));
 
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<ICompletionFeedbackRepository, CompletionFeedbackRepository>();
+builder.Services.AddHttpContextAccessor();
+
+var taskServiceUrl =
+    builder.Configuration["ServiceUrls:Task"]
+    ?? "http://localhost:5266";
+
+builder.Services.AddHttpClient<ITaskCommentPolicyClient, TaskCommentPolicyClient>(client =>
+{
+    client.BaseAddress = new Uri(taskServiceUrl);
+});
+
+builder.Services.AddHttpClient<ITaskFeedbackPolicyClient, TaskFeedbackPolicyClient>(client =>
+{
+    client.BaseAddress = new Uri(taskServiceUrl);
+});
 
 builder.Services.AddCors(options =>
 {

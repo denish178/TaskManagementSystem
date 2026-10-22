@@ -104,9 +104,11 @@ services:
       MongoDb__ConnectionString: mongodb://mongodb:27017
       MongoDb__DatabaseName: TMS_Comments
       SignalR__Redis__Configuration: redis:6379
+      ServiceUrls__Task: http://task:8080
     depends_on:
       - mongodb
       - redis
+      - task
     ports:
       - "5260:8080"
 

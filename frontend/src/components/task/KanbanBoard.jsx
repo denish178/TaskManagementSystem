@@ -23,6 +23,7 @@ export default function KanbanBoard({
     const nextStatus = result.destination.droppableId;
     const task = tasks.find((item) => String(getField(item, "id")) === taskId);
     if (!task || getField(task, "status") === nextStatus) return;
+    if (!getField(task, "canUpdateStatus")) return;
     onStatusChange(taskId, nextStatus, getField(task, "status"));
   }
 
@@ -46,13 +47,20 @@ export default function KanbanBoard({
                 <div className="space-y-3">
                   {grouped[column.value].map((task, index) => {
                     const id = String(getField(task, "id"));
+                    const canDrag = Boolean(getField(task, "canUpdateStatus"));
                     return (
-                      <Draggable draggableId={id} index={index} key={id}>
+                      <Draggable
+                        draggableId={id}
+                        index={index}
+                        key={id}
+                        isDragDisabled={!canDrag}
+                      >
                         {(drag) => (
                           <div
                             ref={drag.innerRef}
                             {...drag.draggableProps}
-                            {...drag.dragHandleProps}
+                            {...(canDrag ? drag.dragHandleProps : {})}
+                            className={canDrag ? undefined : "cursor-default"}
                           >
                             <TaskCard task={task} usersById={usersById} />
                           </div>

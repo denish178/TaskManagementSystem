@@ -54,7 +54,7 @@ export default function MyTasks() {
 
   return (
     <div>
-      <PageHeader title="My Tasks" subtitle="All tasks assigned to you." />
+      <PageHeader title="My Tasks" />
       <div className="mb-4 flex flex-wrap gap-3">
         <input
           value={query}

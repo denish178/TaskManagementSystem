@@ -33,3 +33,7 @@ public record UpdateSubTaskRequest(
     string Title,
     bool IsCompleted
 );
+
+public record SubmitCompletionFeedbackRequest(
+    string Content
+);

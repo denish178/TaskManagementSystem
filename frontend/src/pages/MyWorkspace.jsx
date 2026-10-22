@@ -52,7 +52,7 @@ export default function MyWorkspace() {
   if (loading) {
     return (
       <div>
-        <PageHeader title="My Workspace" subtitle="Work assigned to you." />
+        <PageHeader title="My Workspace" />
         <CardSkeletonGrid count={3} />
       </div>
     );
@@ -62,10 +62,7 @@ export default function MyWorkspace() {
 
   return (
     <div>
-      <PageHeader
-        title="My Workspace"
-        subtitle="Tasks assigned to your account via the Task Service."
-      />
+      <PageHeader title="My Workspace" />
       <div className="grid gap-6 lg:grid-cols-2">
         <TaskGroup title="Overdue" tasks={buckets.overdue} empty="Nothing overdue." />
         <TaskGroup title="Due today" tasks={buckets.today} empty="No tasks due today." />

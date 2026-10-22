@@ -7,6 +7,7 @@ using TaskManagement.Comment.Controllers;
 using TaskManagement.Comment.DTOs;
 using TaskManagement.Comment.Hubs;
 using TaskManagement.Comment.Repositories;
+using TaskManagement.Comment.Services;
 using CommentModel = TaskManagement.Comment.Models.Comment;
 
 namespace TaskManagement.Comment.Tests;
@@ -21,18 +22,30 @@ public class CommentsControllerTests
 
     private static CommentsController CreateController(
         Mock<ICommentRepository> repository,
-        Mock<IHubContext<CommentHub>>? hub = null)
+        Mock<IHubContext<CommentHub>>? hub = null,
+        Mock<ITaskCommentPolicyClient>? policy = null,
+        string role = "User")
     {
         hub ??= CreateHubMock();
+        policy ??= new Mock<ITaskCommentPolicyClient>();
+        policy
+            .Setup(p => p.CanUserCommentOnTaskAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
-        var controller = new CommentsController(repository.Object, hub.Object);
+        var controller = new CommentsController(
+            repository.Object,
+            hub.Object,
+            policy.Object);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
             {
                 User = new ClaimsPrincipal(
                     new ClaimsIdentity(
-                        [new Claim(ClaimTypes.NameIdentifier, UserId.ToString())],
+                        [
+                            new Claim(ClaimTypes.NameIdentifier, UserId.ToString()),
+                            new Claim(ClaimTypes.Role, role),
+                        ],
                         "TestAuth")),
             },
         };
@@ -70,6 +83,22 @@ public class CommentsControllerTests
         Assert.IsType<CreatedAtActionResult>(result);
         repo.Verify(r => r.CreateAsync(It.Is<CommentModel>(c =>
             c.TaskId == TaskId && c.UserId == UserId && c.Content == "Hello")), Times.Once);
+    }
+
+    [Fact]
+    public async Task Create_Admin_ReturnsForbid()
+    {
+        var repo = new Mock<ICommentRepository>();
+        var controller = CreateController(repo, role: "Admin");
+
+        var result = await controller.Create(new CreateCommentRequest
+        {
+            TaskId = TaskId,
+            Content = "Hello",
+        });
+
+        Assert.IsType<ForbidResult>(result);
+        repo.Verify(r => r.CreateAsync(It.IsAny<CommentModel>()), Times.Never);
     }
 
     [Fact]

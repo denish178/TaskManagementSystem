@@ -4,6 +4,7 @@ using TaskManagement.Comment.DTOs;
 using CommentModel = TaskManagement.Comment.Models.Comment;
 using TaskManagement.Comment.Hubs;
 using TaskManagement.Comment.Repositories;
+using TaskManagement.Comment.Services;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
@@ -16,13 +17,16 @@ public class CommentsController : ControllerBase
 {
     private readonly ICommentRepository _repository;
     private readonly IHubContext<CommentHub> _hub;
+    private readonly ITaskCommentPolicyClient _commentPolicy;
 
     public CommentsController(
         ICommentRepository repository,
-        IHubContext<CommentHub> hub)
+        IHubContext<CommentHub> hub,
+        ITaskCommentPolicyClient commentPolicy)
     {
         _repository = repository;
         _hub = hub;
+        _commentPolicy = commentPolicy;
     }
 
     [HttpPost]
@@ -35,6 +39,16 @@ public class CommentsController : ControllerBase
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized();
+        }
+
+        if (User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+
+        if (!await _commentPolicy.CanUserCommentOnTaskAsync(request.TaskId))
+        {
+            return Forbid();
         }
 
         var comment = new CommentModel

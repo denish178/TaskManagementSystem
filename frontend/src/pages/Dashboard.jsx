@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  Bar,
+  BarChart,
+  CartesianGrid,
   Cell,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 import PageHeader from "../components/common/PageHeader";
 import { CardSkeletonGrid } from "../components/common/Skeleton";
@@ -41,6 +48,24 @@ function totalsFromTasks(taskList) {
   return totals;
 }
 
+function ChartLabelTooltip({ active, payload, valueSuffix = "" }) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0].payload;
+  const label = row.name ?? payload[0].name ?? "";
+  const raw = payload[0].value ?? row.value ?? row.percent;
+  const value =
+    valueSuffix && raw != null ? `${raw}${valueSuffix}` : raw;
+  return (
+    <div
+      className="rounded-md border border-[var(--app-border)] bg-[var(--app-card)] px-3 py-2 text-sm shadow-md"
+    >
+      <span className="font-medium text-[var(--app-text)]">
+        {label}: {value}
+      </span>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -49,13 +74,11 @@ export default function Dashboard() {
   const [statusTotals, setStatusTotals] = useState(null);
   const [overdueCount, setOverdueCount] = useState(null);
   const [sprintProgress, setSprintProgress] = useState([]);
-  const [partial, setPartial] = useState("");
 
   async function load() {
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    setPartial("");
     try {
       const [projectList, taskList] = await Promise.all([
         projectService.list(controller.signal),
@@ -101,9 +124,6 @@ export default function Dashboard() {
           setStatusTotals(totals);
           setOverdueCount(overdue);
         } else {
-          setPartial(
-            "Dashboard Service aggregates were unavailable. Task lists below still use Task Service data.",
-          );
           setStatusTotals(totalsFromTasks(taskList));
           setOverdueCount(
             taskList.filter((task) =>
@@ -156,6 +176,24 @@ export default function Dashboard() {
     }));
   }, [statusTotals]);
 
+  const sprintLineData = useMemo(
+    () =>
+      sprintProgress.map((sprint) => ({
+        name: sprint.name || sprint.Name || "Sprint",
+        percent: Number(sprint.progressPercentage ?? sprint.ProgressPercentage ?? 0),
+      })),
+    [sprintProgress],
+  );
+
+  const priorityBarData = useMemo(() => {
+    const counts = { Low: 0, Medium: 0, High: 0, Critical: 0 };
+    tasks.forEach((task) => {
+      const p = getField(task, "priority") || "Medium";
+      if (p in counts) counts[p] += 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [tasks]);
+
   const overdueTasks = tasks.filter((task) =>
     isOverdue(getField(task, "dueDate"), getField(task, "status")),
   );
@@ -167,7 +205,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div>
-        <PageHeader title="Dashboard" subtitle="Workspace overview from live Gateway data." />
+        <PageHeader title="Dashboard" />
         <CardSkeletonGrid />
       </div>
     );
@@ -179,13 +217,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader
-        title="Dashboard"
-        subtitle="Figures come from the Dashboard Service when available, and from Task Service records for lists."
-      />
-      {partial ? (
-        <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{partial}</p>
-      ) : null}
+      <PageHeader title="Dashboard" />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Total projects" value={projects.length} />
         <StatCard title="Total tasks" value={totalTasks} />
@@ -196,9 +228,9 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-5">
-        <section className="card card-pad xl:col-span-2">
-          <h2 className="mb-4 text-base font-semibold">Task status</h2>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <section className="card card-pad">
+          <h2 className="section-title mb-4">Task status</h2>
           {statusTotals ? (
             <>
               <div className="h-64" role="img" aria-label="Task status distribution">
@@ -209,7 +241,7 @@ export default function Dashboard() {
                         <Cell key={entry.key} fill={STATUS_COLORS[entry.key]} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip content={<ChartLabelTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -223,16 +255,74 @@ export default function Dashboard() {
               </ul>
             </>
           ) : (
-            <EmptyState title="Status chart unavailable" description="The Dashboard Service did not return status counts." />
+            <EmptyState title="No status data" description="Charts will appear when tasks are available." />
           )}
         </section>
 
-        <section className="card card-pad xl:col-span-3">
-          <h2 className="mb-4 text-base font-semibold">Sprint progress</h2>
-          {sprintProgress.length === 0 ? (
-            <EmptyState title="No sprint progress" description="Create a sprint, then dashboard progress will appear here." />
+        <section className="card card-pad">
+          <h2 className="section-title mb-4">Tasks by status</h2>
+          {statusTotals ? (
+            <div className="h-64" role="img" aria-label="Task status bar chart">
+              <ResponsiveContainer>
+                <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip content={<ChartLabelTooltip />} />
+                  <Bar dataKey="value" name="Tasks" radius={[4, 4, 0, 0]}>
+                    {chartData.map((entry) => (
+                      <Cell key={entry.key} fill={STATUS_COLORS[entry.key]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <ul className="space-y-4">
+            <EmptyState title="Bar chart unavailable" description="Status counts are not loaded." />
+          )}
+        </section>
+
+        <section className="card card-pad">
+          <h2 className="section-title mb-4">Priority mix</h2>
+          <div className="h-64" role="img" aria-label="Task priority distribution">
+            <ResponsiveContainer>
+              <BarChart data={priorityBarData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border)" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <Tooltip content={<ChartLabelTooltip />} />
+                <Bar dataKey="value" name="Tasks" fill="var(--app-accent)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      </div>
+
+      <section className="mt-6 card card-pad">
+        <h2 className="section-title mb-4">Sprint progress</h2>
+        {sprintLineData.length === 0 ? (
+          <EmptyState title="No sprint progress" description="Create a sprint to see progress trends." />
+        ) : (
+          <>
+            <div className="h-64" role="img" aria-label="Sprint progress line chart">
+              <ResponsiveContainer>
+                <LineChart data={sprintLineData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
+                  <Tooltip content={<ChartLabelTooltip valueSuffix="%" />} />
+                  <Line
+                    type="monotone"
+                    dataKey="percent"
+                    stroke="var(--app-accent)"
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <ul className="mt-4 space-y-3 border-t border-[var(--app-border)] pt-4">
               {sprintProgress.map((sprint) => {
                 const percent = Number(
                   sprint.progressPercentage ?? sprint.ProgressPercentage ?? 0,
@@ -243,7 +333,7 @@ export default function Dashboard() {
                       <span>{sprint.name}</span>
                       <span>{percent}%</span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                    <div className="progress-track">
                       <div
                         className="progress-fill"
                         style={{ width: `${Math.min(percent, 100)}%` }}
@@ -253,9 +343,9 @@ export default function Dashboard() {
                 );
               })}
             </ul>
-          )}
-        </section>
-      </div>
+          </>
+        )}
+      </section>
 
       <section className="mt-6 card card-pad">
         <h2 className="mb-4 text-base font-semibold">Overdue work</h2>

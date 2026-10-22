@@ -44,6 +44,17 @@ public class TaskAuthorizationService
         return await _projectAccess.CanAccessProjectAsync(projectId);
     }
 
+    public bool CanUpdateTaskStatus(ClaimsPrincipal user, TaskItem task)
+    {
+        if (user.IsInRole("Admin"))
+        {
+            return true;
+        }
+
+        var userId = GetUserId(user);
+        return task.AssigneeId.HasValue && task.AssigneeId.Value == userId;
+    }
+
     public static Guid GetUserId(ClaimsPrincipal user)
     {
         var userId =

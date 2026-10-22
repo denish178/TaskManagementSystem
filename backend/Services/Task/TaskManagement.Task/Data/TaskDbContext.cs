@@ -54,6 +54,9 @@ public class TaskDbContext : DbContext
             entity.Property(x => x.UpdatedAt)
                 .IsRequired();
 
+            entity.Property(x => x.CompletionFeedback)
+                .HasMaxLength(4000);
+
             // Indexes for filtering
             entity.HasIndex(x => x.ProjectId);
 

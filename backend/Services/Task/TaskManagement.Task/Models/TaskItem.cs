@@ -26,6 +26,13 @@ public class TaskItem
 
     public DateTime UpdatedAt { get; set; }
 
+    /// <summary>User who moved the task to Done (for completion feedback).</summary>
+    public Guid? CompletedByUserId { get; set; }
+
+    public string? CompletionFeedback { get; set; }
+
+    public DateTime? CompletionFeedbackSubmittedAt { get; set; }
+
     public ICollection<SubTask> SubTasks { get; set; }
         = new List<SubTask>();
 }
